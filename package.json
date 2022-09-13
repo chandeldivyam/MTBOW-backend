@@ -1,0 +1,33 @@
+{
+  "name": "Creators Fantasy",
+  "version": "1.0.0",
+  "description": "Creators Fantasy",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^5.3.0",
+    "fast-two-sms": "^3.0.0",
+    "googleapis": "^107.0.0",
+    "http-status-codes": "^2.1.4",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.21",
+    "mongoose": "^5.13.2",
+    "mongoose-sequence": "^5.3.1",
+    "node-cron": "^3.0.2",
+    "pg": "^8.7.3",
+    "twilio": "^3.80.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.9"
+  },
+  "license": "ISC"
+}
