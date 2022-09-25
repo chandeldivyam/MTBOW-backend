@@ -4,10 +4,13 @@ const pool = require("../db/postgreDb");
 cron.schedule("*/30 * * * * *", async () => {
     console.log("running the point task every three mins!!!");
     const contest_ids = await pool.query(
-        `select id, event_start_time from contests where is_expired is false`
+        `select id, event_start_time, event_end_time from contests where is_expired is false`
     );
     for (let row_data of contest_ids.rows) {
-        if (Date.now() < row_data.event_start_time) {
+        if (
+            Date.now() < row_data.event_start_time ||
+            Date.now() > row_data.event_end_time
+        ) {
             continue;
         }
         const initial_team_stats = await pool.query(

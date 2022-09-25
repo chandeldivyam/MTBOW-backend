@@ -23,7 +23,10 @@ CREATE TABLE creator_stats(
 CREATE TABLE user_info(
     id SERIAL PRIMARY KEY,
     name VARCHAR(55),
-    phone VARCHAR(55)
+    phone VARCHAR(55),
+    promotional float,
+    topup float,
+    winnings float,
 );
 
 CREATE TABLE contests(
@@ -32,6 +35,7 @@ CREATE TABLE contests(
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     event_start_time TIMESTAMP NOT NULL,
     event_end_time TIMESTAMP NOT NULL,
+    participation_fee INT,
     is_expired BOOLEAN,
     image_url VARCHAR(255),
     all_creators varchar(255) ARRAY
@@ -42,12 +46,13 @@ CREATE TABLE teams(
     user_id INT,
     contest_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    team varchar(255) ARRAY
+    team varchar(255) ARRAY,
+    reward INT
 );
 
-CREATE TABLE leaderboard(
+CREATE TABLE creator_points(
     id SERIAL PRIMARY KEY,
-    user_id INT,
+    browser_id varchar(255),
     contest_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     score INT

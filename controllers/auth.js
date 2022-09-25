@@ -99,8 +99,8 @@ const verifyOTPSignup = async (req, res, next) => {
         }
         const token = createJwtToken({ userId: user._id });
         const newUser = await pool.query(
-            `INSERT INTO user_info (name, phone) VALUES ($1, $2)`,
-            [user.name, user.phone]
+            `INSERT INTO user_info (name, phone, promotional, winnings, topup) VALUES ($1, $2, $3, $4, $5)`,
+            [user.name, user.phone, 0, 0, 0]
         );
         const user_id_pg = await pool.query(`SELECT MAX(id) FROM user_info`);
 

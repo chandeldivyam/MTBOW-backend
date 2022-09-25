@@ -7,10 +7,11 @@ const createContest = async (req, res) => {
         image_url,
         event_start_time,
         event_end_time,
+        participation_fee,
     } = req.body;
     const newContest = await pool.query(
         `
-        INSERT INTO contests (name,event_start_time,event_end_time,is_expired, image_url,all_creators) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+        INSERT INTO contests (name,event_start_time,event_end_time,is_expired, image_url,all_creators, participation_fee) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
     `,
         [
             contest_name,
@@ -19,6 +20,7 @@ const createContest = async (req, res) => {
             false,
             image_url,
             browser_ids,
+            participation_fee,
         ]
     );
     let query = browser_ids.map((item) => {
@@ -42,7 +44,8 @@ const getExpiredContests = async (req, res) => {
         `
         SELECT contests.id, contests.name, contests.image_url FROM contests 
         left join teams on teams.contest_id = contests.id
-        where contests.is_expired is true and teams.user_id = $1`,
+        where contests.is_expired is true and teams.user_id = $1
+        order by contests.id desc`,
         [user_id_mongo]
     );
     res.status(200).json(expiredContests.rows);
@@ -63,12 +66,11 @@ const deleteContest = async (req, res) => {
     res.send(liveContests.rows[0]["count"]);
 };
 const getContestInfo = async (req, res) => {
-    // const contestInfo = await pool.query()
     const event_id = parseInt(req.params.id);
     const contest_details = await pool.query(
         `
         WITH info_table as (
-            SELECT name, image_url, unnest(all_creators) as browser_id, event_start_time, event_end_time, is_expired FROM contests WHERE id = $1
+            SELECT name, image_url, unnest(all_creators) as browser_id, event_start_time, event_end_time, is_expired, participation_fee FROM contests WHERE id = $1
         )
         SELECT info_table.*, creators.* from info_table
         left join creators on creators.browser_id = info_table.browser_id;
@@ -80,11 +82,96 @@ const getContestInfo = async (req, res) => {
 
 const expireEvent = async (req, res) => {
     const contest_id = parseInt(req.params.id);
+    const contest_expired = await pool.query(
+        `SELECT is_expired FROM contests where id=$1 `,
+        [contest_id]
+    );
+    if (contest_expired.rows[0]["is_expired"]) {
+        return res.status(400).send("The event has expired");
+    }
+    const leaderboard = await pool.query(
+        `with team_points as (select user_id,unnest(team) as browser_id from teams where contest_id = $1)
+    select team_points.user_id,SUM(creator_points.score) as total_points, RANK() OVER(ORDER BY SUM(creator_points.score) desc) from team_points
+        left join creator_points on team_points.browser_id = creator_points.browser_id
+        where creator_points.contest_id = $2
+        group by 1
+        order by rank;`,
+        [contest_id, contest_id]
+    );
+    const winners = { rank1: [], top10: [], top50: [] };
+    if (leaderboard.rows.length > 0) {
+        for (leaderboard_item of leaderboard.rows) {
+            if (parseInt(leaderboard_item.rank) === 1) {
+                winners.rank1.push(leaderboard_item.user_id);
+                continue;
+            }
+            if (
+                parseInt(leaderboard_item.rank) > 1 &&
+                parseInt(leaderboard_item.rank) <= 10
+            ) {
+                winners.top10.push(leaderboard_item.user_id);
+                continue;
+            }
+            if (
+                parseInt(leaderboard_item.rank) > 10 &&
+                parseInt(leaderboard_item.rank) <= 50
+            ) {
+                winners.top50.push(leaderboard_item.user_id);
+                continue;
+            }
+        }
+    }
+    if (winners.rank1.length > 0) {
+        const rank_1 = "(" + winners.rank1.join() + ")";
+        console.log(winners.rank1.length);
+        console.log(rank_1);
+        const rank_1_update = await pool.query(
+            `
+        UPDATE user_info set winnings = (winnings + 2500) where id in ${rank_1}
+    `
+        );
+        const rank1_reward = await pool.query(
+            `
+            UPDATE teams set reward = 2500 where user_id in ${rank_1} and contest_id = $1
+        `,
+            [contest_id]
+        );
+    }
+    if (winners.top10.length > 0) {
+        const top_10 = "(" + winners.top10.join() + ")";
+        const rank_10_update = await pool.query(
+            `
+        UPDATE user_info set winnings = (winnings + 100) where id in ${top_10}
+    `
+        );
+        const rank10_reward = await pool.query(
+            `
+            UPDATE teams set reward = 100 where user_id in ${top_10} and contest_id = $1
+        `,
+            [contest_id]
+        );
+    }
+    if (winners.top50.length > 0) {
+        const top_50 = "(" + winners.top50.join() + ")";
+        const rank_50_update = await pool.query(
+            `
+        UPDATE user_info set winnings = (winnings + 100) where id in ${top_50}
+    `
+        );
+        const rank50_reward = await pool.query(
+            `
+            UPDATE teams set reward = 40 where user_id in ${top_50} and contest_id = $1
+        `,
+            [contest_id]
+        );
+    }
     const expire_event = await pool.query(
         `UPDATE contests set is_expired = true where id = $1`,
         [contest_id]
     );
-    res.send("Event Expired");
+    res.status(200).json({
+        success: true,
+    });
 };
 
 module.exports = {

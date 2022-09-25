@@ -1,31 +1,54 @@
 // const pool = require("../db/postgreDb");
 
 const pool = require("../db/postgreDb");
-const { unsubscribe } = require("../routes/teams");
+const { balanceCalculator } = require("./common/balanceCalculator");
 
 const createTeam = async (req, res) => {
     let { contest_id, browser_ids } = req.body;
     contest_id = parseInt(contest_id);
     const { user_id_mongo } = req.headers.user;
     const contest_expired = await pool.query(
-        `SELECT is_expired FROM contests where id=$1 `,
+        `SELECT is_expired, participation_fee FROM contests where id=$1 `,
         [contest_id]
     );
     if (contest_expired.rows[0]["is_expired"]) {
-        return res.send("The event has expired");
+        return res.status(400).send("The event has expired");
     }
+    const participation_fee = contest_expired.rows[0]["participation_fee"];
     const alreadyParticipated = await pool.query(
         `SELECT * FROM teams where user_id = $1 and contest_id = $2`,
         [user_id_mongo, contest_id]
     );
     if (alreadyParticipated.rowCount !== 0) {
-        return res.send("Already Participated in the contest");
+        return res.status(400).send("Already Participated in the contest");
     }
-    const newTeam = await pool.query(
-        `INSERT INTO teams (user_id, contest_id, team) VALUES ($1, $2, $3) RETURNING *`,
-        [user_id_mongo, contest_id, browser_ids]
+    const balance = await pool.query(
+        `
+    select promotional, topup, winnings from user_info where id =$1 
+    `,
+        [user_id_mongo]
     );
-    res.json(newTeam);
+    const { promotional, topup, winnings } = balance.rows[0];
+    if (promotional + winnings + topup < participation_fee) {
+        return res.status(400).send("Insufficient balance");
+    }
+    const { winnings_left, topup_left, promotional_left } = balanceCalculator(
+        winnings,
+        topup,
+        promotional,
+        participation_fee
+    );
+    const newTeam = await pool.query(
+        `INSERT INTO teams (user_id, contest_id, team, reward) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [user_id_mongo, contest_id, browser_ids, 0]
+    );
+    await pool.query(
+        `
+        UPDATE user_info set promotional = $1, winnings = $2, topup = $3 where id = $4
+    `,
+        [promotional_left, winnings_left, topup_left, user_id_mongo]
+    );
+    res.status(200).json(newTeam);
 };
 const getTeamDetails = async (req, res) => {
     const contest_id = parseInt(req.params.id);
@@ -48,7 +71,7 @@ const getTeamScore = async (req, res) => {
             left join creator_points on team_points.browser_id = creator_points.browser_id
             where creator_points.contest_id = $2
             group by 1
-            order by 1
+            order by rank;
     `,
         [contest_id, contest_id]
     );
@@ -65,7 +88,6 @@ const getTeamScore = async (req, res) => {
     for (let item of team_score.rows) {
         team_score_object[item.browser_id] = item.score;
     }
-    console.log({ leaderboard: leaderboard.rows, team_score: team_score.rows });
     res.json({ leaderboard: leaderboard.rows, team_score_object });
 };
 
