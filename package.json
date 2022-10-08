@@ -9,6 +9,9 @@
   "keywords": [],
   "author": "",
   "dependencies": {
+    "axios": "^0.27.2",
+    "bcrypt": "^5.0.1",
+    "cashfree-sdk": "^0.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
@@ -22,6 +25,7 @@
     "lodash": "^4.17.21",
     "mongoose": "^5.13.2",
     "mongoose-sequence": "^5.3.1",
+    "nano-id": "^1.1.0",
     "node-cron": "^3.0.2",
     "pg": "^8.7.3",
     "twilio": "^3.80.1"

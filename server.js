@@ -9,6 +9,7 @@ const authRouter = require("./routes/auth");
 const checkAuth = require("./middleware/checkAuth");
 const creatorRouter = require("./routes/creator");
 const walletRouter = require("./routes/wallet");
+const paymentRouter = require("./routes/payments");
 
 const cors = require("cors");
 const SERVER_ERR = require("./middleware/errors");
@@ -29,6 +30,7 @@ app.use("/api/v1/teams", teamsRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/creator", creatorRouter);
 app.use("/api/v1/wallet", walletRouter);
+app.use("/api/v1/payments", paymentRouter);
 
 app.use((err, req, res, next) => {
     console.log(err);
