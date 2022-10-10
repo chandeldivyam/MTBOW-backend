@@ -8,11 +8,14 @@ const createTeam = async (req, res) => {
     contest_id = parseInt(contest_id);
     const { user_id_mongo } = req.headers.user;
     const contest_expired = await pool.query(
-        `SELECT is_expired, participation_fee FROM contests where id=$1 `,
+        `SELECT is_expired, participation_fee, event_start_time FROM contests where id=$1 `,
         [contest_id]
     );
     if (contest_expired.rows[0]["is_expired"]) {
         return res.status(400).send("The event has expired");
+    }
+    if (Date.now() >= new Date(contest_expired.rows[0].event_start_time)) {
+        return res.status(400).send("The event has alredy started");
     }
     const participation_fee = contest_expired.rows[0]["participation_fee"];
     const alreadyParticipated = await pool.query(
