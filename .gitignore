@@ -1,3 +1,7 @@
 /node_modules
+<<<<<<< HEAD
 .env
-/db/postgresql-config.js
+db/postgresql-config.js
+=======
+.env
+>>>>>>> parent of 9606eee (crom time management, no participation after event start)
