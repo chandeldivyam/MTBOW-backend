@@ -8,8 +8,8 @@ cron.schedule("*/30 * * * * *", async () => {
     );
     for (let row_data of contest_ids.rows) {
         if (
-            Date.now() < new Date(row_data.event_start_time) ||
-            Date.now() > new Date(row_data.event_end_time)
+            Date.now() < row_data.event_start_time ||
+            Date.now() > row_data.event_end_time
         ) {
             continue;
         }

@@ -1,5 +1,5 @@
 CREATE DATABASE fantasy;
-SET TIMEZONE 'Asia/Kolkata';
+SET TIMEZONE TO 'Asia/Kolkata';
 
 CREATE TABLE creators(
     id SERIAL PRIMARY KEY,
@@ -12,7 +12,7 @@ CREATE TABLE creators(
 CREATE TABLE creator_stats(
     id SERIAL PRIMARY KEY, 
     browser_id VARCHAR(255),
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     views BIGINT,
     comments BIGINT,
     likes BIGINT,
@@ -22,19 +22,20 @@ CREATE TABLE creator_stats(
 
 CREATE TABLE user_info(
     id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     name VARCHAR(55),
     phone VARCHAR(55),
     promotional float,
-    topup float,
     winnings float,
+    topup float
 );
 
 CREATE TABLE contests(
     id SERIAL PRIMARY KEY,
     name VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    event_start_time TIMESTAMP NOT NULL,
-    event_end_time TIMESTAMP NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    event_start_time TIMESTAMPTZ NOT NULL,
+    event_end_time TIMESTAMPTZ NOT NULL,
     participation_fee INT,
     is_expired BOOLEAN,
     image_url VARCHAR(255),
@@ -45,7 +46,7 @@ CREATE TABLE teams(
     id SERIAL PRIMARY KEY,
     user_id INT,
     contest_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     team varchar(255) ARRAY,
     reward INT
 );
@@ -54,13 +55,13 @@ CREATE TABLE creator_points(
     id SERIAL PRIMARY KEY,
     browser_id varchar(255),
     contest_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     score INT
 );
 
 CREATE TABLE recharge_request(
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     user_id INT,
     order_id VARCHAR(255),
     cf_order_id BIGINT,
