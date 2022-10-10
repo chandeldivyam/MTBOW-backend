@@ -13,16 +13,42 @@ const registerUser = async (req, res, next) => {
     try {
         let { phone, name } = req.body;
         const phoneExist = await User.findOne({ phone });
-        if (phoneExist) {
-            next({ status: 400, message: PHONE_ALREADY_EXISTS_ERR });
+       if (phoneExist) {
+            const user_exist = await pool.query(
+                `select id from user_info where phone = $1`,
+                [phone]
+            );
+            if (user_exist.rowCount > 0) {
+                next({ status: 400, message: PHONE_ALREADY_EXISTS_ERR });
+                return;
+            }
+            res.status(200).json({
+                type: "success",
+                message: "Account created OTP sent to mobile number",
+                data: {
+                    userId: phoneExist._id,
+                },
+            });
+            const otp = generateOTP(6);
+
+            phoneExist.phoneOtp = otp;
+            await phoneExist.save();
+            await fast2smsSend(
+                {
+                    message: `Your OTP for creators fantasy is ${otp}`,
+                    contactNumber: phone,
+                },
+                next
+            );
             return;
         }
+
         const createUser = new User({
             phone,
             name,
         });
         const user = await createUser.save();
-        console.log("here");
+        //console.log("here");
         res.status(200).json({
             type: "success",
             message: "Account created OTP sent to mobile number",
