@@ -1,9 +1,16 @@
 require("dotenv").config();
 const { google } = require("googleapis");
 const lodash = require("lodash");
+const getRandomInt = (max) => {
+    return Math.floor(Math.random() * max);
+};
+const youtube_key = [
+    "AIzaSyBhBR_tAqUaOOz-hrM-hvL9PFEgilT12fk",
+    "AIzaSyCq9A_4gIUHX1XltFcGPqRU8SKj2BvxsTY",
+];
 const youtube = google.youtube({
     version: "v3",
-    auth: "AIzaSyBhBR_tAqUaOOz-hrM-hvL9PFEgilT12fk",
+    auth: youtube_key[getRandomInt(2)],
 });
 
 // auth: "AIzaSyCq9A_4gIUHX1XltFcGPqRU8SKj2BvxsTY",
@@ -159,3 +166,4 @@ const fetchAllData = async (browser_ids) => {
 };
 
 module.exports = { fetchAllData };
+
