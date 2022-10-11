@@ -52,7 +52,7 @@ const getExpiredContests = async (req, res) => {
 };
 const getLiveContests = async (req, res) => {
     const liveContests = await pool.query(
-        `SELECT id, name, image_url FROM contests WHERE is_expired is false`
+        `SELECT id, name, image_url, event_start_time FROM contests WHERE is_expired is false`
     );
     res.status(200).json(liveContests.rows);
 };
