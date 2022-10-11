@@ -9,6 +9,11 @@ cron.schedule("*/45 * * * * *", async () => {
     for (browser_id_object of browser_id_data.rows) {
         browser_ids.push(browser_id_object.browser_id);
     }
-    const creatorStats = await fetchAllData(browser_ids);
-    console.log("Added stats!!");
+    if(browser_ids.length > 0){
+	const creatorStats = await fetchAllData(browser_ids);
+	console.log("Added stats!!");
+	}
+    else {
+	console.log("Browser ids array is empty")
+	}
 });
