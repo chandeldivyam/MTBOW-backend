@@ -135,7 +135,7 @@ const fetchChannelData = async (browser_id) => {
         channel_statistics.channel_views += total_views;
     }
     // console.log(channel_statistics);
-    console.log(channel_statistics);
+    //console.log(channel_statistics);
     return channel_statistics;
 };
 
@@ -157,7 +157,7 @@ const fetchAllData = async (browser_ids) => {
                 ]
             );
             creatorsData.push(stats);
-            console.log(stats);
+            //console.log(stats);
         } catch (error) {
             console.log(error);
         }

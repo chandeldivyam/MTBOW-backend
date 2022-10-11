@@ -3,8 +3,8 @@ const { fetchAllData } = require("./common/fetchScore");
 const pool = require("../db/postgreDb");
 
 cron.schedule("*/45 * * * * *", async () => {
-    console.log("running a task every three mins!!!");
-    const browser_id_data = await pool.query(`select browser_id from creators`);
+    //console.log("running a task every three mins!!!");
+    const browser_id_data = await pool.query(`select distinct unnest(all_creators) as browser_id from contests where is_expired = false and NOW() > event_start_time - interval '2 minutes' and NOW() < event_end_time;`);
     const browser_ids = [];
     for (browser_id_object of browser_id_data.rows) {
         browser_ids.push(browser_id_object.browser_id);
