@@ -5,6 +5,9 @@ const { balanceCalculator } = require("./common/balanceCalculator");
 
 const createTeam = async (req, res) => {
     let { contest_id, browser_ids } = req.body;
+    if(browser_ids.length !== 11){
+	return res.status(400).send("Team size can only be eleven")
+    }
     contest_id = parseInt(contest_id);
     const { user_id_mongo } = req.headers.user;
     const contest_expired = await pool.query(

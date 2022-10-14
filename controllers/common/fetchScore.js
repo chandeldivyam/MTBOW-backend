@@ -7,10 +7,15 @@ const getRandomInt = (max) => {
 const youtube_key = [
     "AIzaSyBhBR_tAqUaOOz-hrM-hvL9PFEgilT12fk",
     "AIzaSyCq9A_4gIUHX1XltFcGPqRU8SKj2BvxsTY",
+    "AIzaSyBvY1jsO6VCb1Lf1pN_4tkzYkIp7GjLWGg",
+    "AIzaSyCojS5-bFxQRJ4Vacu9LjNUtnyq6dQ61Uo",
+    "AIzaSyAsII3PbmG3zEpLhxMUY6MeTfRaWr4M4Is",
+    "AIzaSyDM9YM3ftNkYq7X8bSWra8icf6GqD3FF5g",
+    "AIzaSyD8FvDFeI3NaACEJHgJ3-MSDEsEpN9sOe8"
 ];
 const youtube = google.youtube({
     version: "v3",
-    auth: youtube_key[getRandomInt(2)],
+    auth: youtube_key[getRandomInt(7)],
 });
 
 // auth: "AIzaSyCq9A_4gIUHX1XltFcGPqRU8SKj2BvxsTY",
