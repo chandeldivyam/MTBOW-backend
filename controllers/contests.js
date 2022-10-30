@@ -83,7 +83,7 @@ const getContestInfo = async (req, res) => {
 const expireEvent = async (req, res) => {
     const contest_id = parseInt(req.params.id);
     const contest_expired = await pool.query(
-        `SELECT is_expired FROM contests where id=$1 `,
+        `SELECT is_expired, participation_fee FROM contests where id=$1 `,
         [contest_id]
     );
     if (contest_expired.rows[0]["is_expired"]) {
@@ -91,76 +91,84 @@ const expireEvent = async (req, res) => {
     }
     const leaderboard = await pool.query(
         `with team_points as (select user_id,unnest(team) as browser_id from teams where contest_id = $1)
-    select team_points.user_id,SUM(creator_points.score) as total_points, RANK() OVER(ORDER BY SUM(creator_points.score) desc) from team_points
+        select team_points.user_id,SUM(creator_points.score) as total_points, RANK() OVER(ORDER BY SUM(creator_points.score) desc) from team_points
         left join creator_points on team_points.browser_id = creator_points.browser_id
         where creator_points.contest_id = $2
         group by 1
         order by rank;`,
         [contest_id, contest_id]
     );
-    const winners = { rank1: [], top10: [], top50: [] };
+    const winners = {
+        rank1: [],
+        rank2: [],
+        top50_percentile: [],
+    };
+    const prize_pool =
+        parseInt(leaderboard.rows.length) *
+        parseInt(contest_expired.rows[0]["participation_fee"]);
+    const total_participants = parseInt(leaderboard.rows.length);
     if (leaderboard.rows.length > 0) {
         for (leaderboard_item of leaderboard.rows) {
             if (parseInt(leaderboard_item.rank) === 1) {
                 winners.rank1.push(leaderboard_item.user_id);
                 continue;
             }
-            if (
-                parseInt(leaderboard_item.rank) > 1 &&
-                parseInt(leaderboard_item.rank) <= 10
-            ) {
-                winners.top10.push(leaderboard_item.user_id);
+            if (parseInt(leaderboard_item.rank) === 2) {
+                winners.rank2.push(leaderboard_item.user_id);
                 continue;
             }
             if (
-                parseInt(leaderboard_item.rank) > 10 &&
-                parseInt(leaderboard_item.rank) <= 50
+                parseInt(leaderboard_item.rank) > 2 &&
+                parseInt(leaderboard_item.rank) <=
+                    Math.ceil(total_participants / 2)
             ) {
-                winners.top50.push(leaderboard_item.user_id);
-                continue;
+                winners.top50_percentile.push(leaderboard_item.user_id);
             }
         }
     }
     if (winners.rank1.length > 0) {
         const rank_1 = "(" + winners.rank1.join() + ")";
-        console.log(winners.rank1.length);
-        console.log(rank_1);
+        let winning_amount = (0.4 * prize_pool) / winners.rank1.length;
         const rank_1_update = await pool.query(
             `
-        UPDATE user_info set winnings = (winnings + 2500) where id in ${rank_1}
+        UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_1}
     `
         );
         const rank1_reward = await pool.query(
             `
-            UPDATE teams set reward = 2500 where user_id in ${rank_1} and contest_id = $1
+            UPDATE teams set reward = ${winning_amount} where user_id in ${rank_1} and contest_id = $1
+        `,
+            [contest_id]
+        );
+        winning_amount = 0;
+    }
+    if (winners.rank2.length > 0) {
+        const rank_2 = "(" + winners.rank2.join() + ")";
+        let winning_amount = (0.2 * prize_pool) / winners.rank2.length;
+        const rank_2_update = await pool.query(
+            `
+        UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_2}
+        `
+        );
+        const rank2_reward = await pool.query(
+            `
+            UPDATE teams set reward = ${winning_amount} where user_id in ${rank_2} and contest_id = $1
         `,
             [contest_id]
         );
     }
-    if (winners.top10.length > 0) {
-        const top_10 = "(" + winners.top10.join() + ")";
-        const rank_10_update = await pool.query(
+    if (winners.top50_percentile.length > 0) {
+        const top_50 = "(" + winners.top50_percentile.join() + ")";
+        let winning_amount =
+            (0.4 * prize_pool) / winners.top50_percentile.length;
+        const rank_50percentile_update = await pool.query(
             `
-        UPDATE user_info set winnings = (winnings + 100) where id in ${top_10}
-    `
+        UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${top_50}
+        `
         );
-        const rank10_reward = await pool.query(
+        const rank_50percentile_reward = await pool.query(
             `
-            UPDATE teams set reward = 100 where user_id in ${top_10} and contest_id = $1
-        `,
-            [contest_id]
-        );
-    }
-    if (winners.top50.length > 0) {
-        const top_50 = "(" + winners.top50.join() + ")";
-        const rank_50_update = await pool.query(
-            `
-        UPDATE user_info set winnings = (winnings + 100) where id in ${top_50}
-    `
-        );
-        const rank50_reward = await pool.query(
-            `
-            UPDATE teams set reward = 40 where user_id in ${top_50} and contest_id = $1
+            UPDATE teams set reward = ${winning_amount} where user_id in ${top_50} and contest_id = $1
         `,
             [contest_id]
         );
