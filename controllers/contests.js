@@ -90,10 +90,10 @@ const expireEvent = async (req, res) => {
         return res.status(400).send("The event has expired");
     }
     const leaderboard = await pool.query(
-        `with team_points as (select user_id,unnest(team) as browser_id from teams where contest_id = $1)
+        `with team_points as (select user_id,unnest(team) as browser_id from teams where contest_id = 49)
         select team_points.user_id,SUM(creator_points.score) as total_points, RANK() OVER(ORDER BY SUM(creator_points.score) desc) from team_points
         left join creator_points on team_points.browser_id = creator_points.browser_id
-        where creator_points.contest_id = $2
+        where creator_points.contest_id = 49
         group by 1
         order by rank;`,
         [contest_id, contest_id]
@@ -107,6 +107,61 @@ const expireEvent = async (req, res) => {
         parseInt(leaderboard.rows.length) *
         parseInt(contest_expired.rows[0]["participation_fee"]);
     const total_participants = parseInt(leaderboard.rows.length);
+
+    if (total_participants > 0 && total_participants <= 5) {
+        for (leaderboard_item of leaderboard.rows) {
+            if (parseInt(leaderboard_item.rank) === 1) {
+                winners.rank1.push(leaderboard_item.user_id);
+                continue;
+            }
+            if (parseInt(leaderboard_item.rank) === 2) {
+                winners.rank2.push(leaderboard_item.user_id);
+                continue;
+            }
+            if (parseInt(leaderboard_item.rank) > 2) {
+                winners.top50_percentile.push(leaderboard_item.user_id);
+            }
+        }
+        if (winners.rank1.length > 0) {
+            const rank_1 = "(" + winners.rank1.join() + ")";
+            let winning_amount = (0.7 * prize_pool) / winners.rank1.length;
+            const rank_1_update = await pool.query(
+                `
+            UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_1}
+        `
+            );
+            const rank1_reward = await pool.query(
+                `
+                UPDATE teams set reward = ${winning_amount} where user_id in ${rank_1} and contest_id = $1
+            `,
+                [contest_id]
+            );
+            winning_amount = 0;
+        }
+        if (winners.rank2.length > 0) {
+            const rank_2 = "(" + winners.rank2.join() + ")";
+            let winning_amount = (0.3 * prize_pool) / winners.rank2.length;
+            const rank_2_update = await pool.query(
+                `
+            UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_2}
+            `
+            );
+            const rank2_reward = await pool.query(
+                `
+                UPDATE teams set reward = ${winning_amount} where user_id in ${rank_2} and contest_id = $1
+            `,
+                [contest_id]
+            );
+        }
+        const expire_event = await pool.query(
+            `UPDATE contests set is_expired = true where id = $1`,
+            [contest_id]
+        );
+        return res.status(200).json({
+            success: true,
+        });
+    }
+
     if (leaderboard.rows.length > 0) {
         for (leaderboard_item of leaderboard.rows) {
             if (parseInt(leaderboard_item.rank) === 1) {
