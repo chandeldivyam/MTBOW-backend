@@ -90,10 +90,10 @@ const expireEvent = async (req, res) => {
         return res.status(400).send("The event has expired");
     }
     const leaderboard = await pool.query(
-        `with team_points as (select user_id,unnest(team) as browser_id from teams where contest_id = 49)
+        `with team_points as (select user_id,unnest(team) as browser_id from teams where contest_id = $1)
         select team_points.user_id,SUM(creator_points.score) as total_points, RANK() OVER(ORDER BY SUM(creator_points.score) desc) from team_points
         left join creator_points on team_points.browser_id = creator_points.browser_id
-        where creator_points.contest_id = 49
+        where creator_points.contest_id = $2
         group by 1
         order by rank;`,
         [contest_id, contest_id]
