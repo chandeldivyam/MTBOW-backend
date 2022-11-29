@@ -1,8 +1,12 @@
 const crypto = require("crypto");
 const https = require("https");
 
-function encodeReuqest(payload) {
+function encodeRequest(payload) {
     return Buffer.from(JSON.stringify(payload)).toString("base64");
+}
+
+function decodeRequest(payload) {
+    return JSON.parse(Buffer.from(payload, "base64").toString("utf-8"));
 }
 
 function signRequest(payload) {
@@ -10,6 +14,7 @@ function signRequest(payload) {
 }
 
 module.exports = {
-    encodeReuqest,
+    encodeRequest,
     signRequest,
+    decodeRequest,
 };

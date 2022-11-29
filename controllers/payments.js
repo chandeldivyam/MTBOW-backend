@@ -4,7 +4,11 @@ const Cashfree = require("cashfree-sdk");
 const axios = require("axios");
 const nanoId = require("nano-id");
 const { query } = require("express");
-const { encodeReuqest, signRequest } = require("./common/helper");
+const {
+    encodeRequest,
+    signRequest,
+    decodeRequest,
+} = require("./common/helper");
 const fetch = require("node-fetch");
 
 const generateToken = async (req, res) => {
@@ -128,7 +132,6 @@ const initiatePayment = async (req, res) => {
         [user_id_mongo]
     );
     const { name, phone } = user_details.rows[0];
-    const user_number_string = user_id_mongo.toString();
     const transaction_id = nanoId(32);
     const callbackUrl =
         "https://api.mtbow.com/api/v1/payments/callback/" + transaction_id;
@@ -145,7 +148,7 @@ const initiatePayment = async (req, res) => {
             type: "PAY_PAGE",
         },
     };
-    const payload_base64 = encodeReuqest(payload);
+    const payload_base64 = encodeRequest(payload);
     const sign = payload_base64 + "/pg/v1/pay" + process.env.PHONEPE_UAT_KEY;
     const x_verify =
         signRequest(sign) + "###" + process.env.PHONEPE_UAT_KEYINDEX;
@@ -170,19 +173,19 @@ const initiatePayment = async (req, res) => {
         payment_initiation_response.success === true &&
         payment_initiation_response.message === "Payment initiated"
     ) {
-        // await pool.query(
-        //     `
-        //     INSERT INTO recharge_request (user_id, transaction_id, verification_code, recharge_amount, recharge_status)
-        //     VALUES ($1, $2, $3, $4)
-        // `,
-        //     [
-        //         user_id_mongo,
-        //         payment_initiation_response.data.merchantTransactionId,
-        //         x_verify,
-        //         amount,
-        //         "ACTIVE",
-        //     ]
-        // );
+        await pool.query(
+            `
+            INSERT INTO recharge_request (user_id, transaction_id, verification_code, recharge_amount, recharge_status)
+            VALUES ($1, $2, $3, $4, $5)
+        `,
+            [
+                user_id_mongo,
+                payment_initiation_response.data.merchantTransactionId,
+                x_verify,
+                amount,
+                "ACTIVE",
+            ]
+        );
         return res.status(200).json({
             redirect_url:
                 payment_initiation_response.data.instrumentResponse.redirectInfo
@@ -193,11 +196,74 @@ const initiatePayment = async (req, res) => {
 };
 
 const paymentCallback = async (req, res) => {
-    // Get the id from url
-    // get the payment status from the merchant
-    // if success add money to the wallet
     const transaction_id = req.params.id;
-    console.log(req);
+    const x_verify_request = req.headers["x-verify"];
+    const payment_request = await pool.query(
+        `select * from recharge_request where transaction_id = $1`,
+        [transaction_id]
+    );
+
+    if (payment_request.rows.length === 0) {
+        return res.status(400).send("No such transaction Id");
+    }
+
+    if (payment_request.rows.length > 1) {
+        return res.status(400).send("Multiple transaction IDs");
+    }
+
+    const { user_id, recharge_amount, recharge_status } =
+        payment_request.rows[0];
+
+    if (recharge_status !== "ACTIVE") {
+        return res.status(400).send("Payment status is not ACTIVE");
+    }
+    const callbackUrl =
+        "https://api.mtbow.com/api/v1/payments/callback/" + transaction_id;
+    const payload = {
+        merchantId: process.env.PHONEPE_UAT_MID,
+        merchantTransactionId: transaction_id,
+        merchantUserId: "MUID" + user_id,
+        amount: 100 * recharge_amount,
+        redirectUrl: "https://play.mtbow.com/payments",
+        redirectMode: "POST",
+        callbackUrl: callbackUrl,
+        mobileNumber: phone,
+        paymentInstrument: {
+            type: "PAY_PAGE",
+        },
+    };
+    const payload_base64 = encodeRequest(payload);
+    const sign = payload_base64 + "/pg/v1/pay" + process.env.PHONEPE_UAT_KEY;
+    const x_verify =
+        signRequest(sign) + "###" + process.env.PHONEPE_UAT_KEYINDEX;
+
+    if (x_verify_request !== x_verify) {
+        return res.status(403).send("Invalid verification id");
+    }
+
+    if (!req.body.response) return res.status(400).send("Response Missing");
+    const cb_response = decodeRequest(req.body.response);
+    if (
+        cb_response.success === true &&
+        cb_response.code === "PAYMENT_SUCCESS"
+    ) {
+        await pool.query(
+            `
+        UPDATE recharge_request set recharge_status = 'PAYMENT_SUCCESS' where user_id = $1 and transaction_id = $2
+    `,
+            [user_id, transaction_id]
+        );
+
+        await pool.query(
+            `
+        UPDATE user_info set topup = (topup + $1) where id = $2
+    `,
+            [recharge_amount, user_id]
+        );
+        res.status(200).send("Success");
+    }
+    // we need to change the payment status accordingly
+    res.json({ status: "transaction failed" });
 };
 
 module.exports = {
