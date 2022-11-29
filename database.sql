@@ -63,8 +63,8 @@ CREATE TABLE recharge_request(
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     user_id INT,
-    order_id VARCHAR(255),
-    cf_order_id BIGINT,
-    cf_order_token varchar(255),
-    order_status varchar(255)
+    transaction_id VARCHAR(255),
+    verification_code varchar(255),
+    recharge_amount INT,
+    recharge_status varchar(255)
 );

@@ -4,6 +4,8 @@ const Cashfree = require("cashfree-sdk");
 const axios = require("axios");
 const nanoId = require("nano-id");
 const { query } = require("express");
+const { encodeReuqest, signRequest } = require("./common/helper");
+const fetch = require("node-fetch");
 
 const generateToken = async (req, res) => {
     try {
@@ -113,4 +115,95 @@ const rechargeFailed = async (req, res) => {
     res.json({ payment: "failed" });
 };
 
-module.exports = { generateToken, rechargeSuccess, rechargeFailed };
+const initiatePayment = async (req, res) => {
+    const user_id_mongo = parseInt(req.headers.user.user_id_mongo);
+    const { amount } = req.body;
+
+    if (!amount) {
+        res.status(400).send("Amount not entered");
+    }
+
+    const user_details = await pool.query(
+        `select name, phone from user_info where id = $1`,
+        [user_id_mongo]
+    );
+    const { name, phone } = user_details.rows[0];
+    const user_number_string = user_id_mongo.toString();
+    const transaction_id = nanoId(32);
+    const callbackUrl =
+        "https://api.mtbow.com/api/v1/payments/callback/" + transaction_id;
+    const payload = {
+        merchantId: process.env.PHONEPE_UAT_MID,
+        merchantTransactionId: transaction_id,
+        merchantUserId: "MUID" + user_id_mongo,
+        amount: 100 * amount,
+        redirectUrl: "https://play.mtbow.com/payments",
+        redirectMode: "POST",
+        callbackUrl: callbackUrl,
+        mobileNumber: phone,
+        paymentInstrument: {
+            type: "PAY_PAGE",
+        },
+    };
+    const payload_base64 = encodeReuqest(payload);
+    const sign = payload_base64 + "/pg/v1/pay" + process.env.PHONEPE_UAT_KEY;
+    const x_verify =
+        signRequest(sign) + "###" + process.env.PHONEPE_UAT_KEYINDEX;
+    const options = {
+        method: "POST",
+        headers: {
+            accept: "application/json",
+            "Content-Type": "application/json",
+            "X-VERIFY": x_verify,
+        },
+        body: JSON.stringify({
+            request: payload_base64,
+        }),
+    };
+    const payment_initiation_response = await fetch(
+        "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
+        options
+    )
+        .then((response) => response.json())
+        .catch((err) => console.error(err));
+    if (
+        payment_initiation_response.success === true &&
+        payment_initiation_response.message === "Payment initiated"
+    ) {
+        // await pool.query(
+        //     `
+        //     INSERT INTO recharge_request (user_id, transaction_id, verification_code, recharge_amount, recharge_status)
+        //     VALUES ($1, $2, $3, $4)
+        // `,
+        //     [
+        //         user_id_mongo,
+        //         payment_initiation_response.data.merchantTransactionId,
+        //         x_verify,
+        //         amount,
+        //         "ACTIVE",
+        //     ]
+        // );
+        return res.status(200).json({
+            redirect_url:
+                payment_initiation_response.data.instrumentResponse.redirectInfo
+                    .url,
+        });
+    }
+    res.status(500).json({ status: "failure, payment did not initiate" });
+};
+
+const paymentCallback = async (req, res) => {
+    // Get the id from url
+    // get the payment status from the merchant
+    // if success add money to the wallet
+    const transaction_id = req.params.id;
+    console.log(req);
+};
+
+module.exports = {
+    generateToken,
+    rechargeSuccess,
+    rechargeFailed,
+    initiatePayment,
+    paymentCallback,
+};
