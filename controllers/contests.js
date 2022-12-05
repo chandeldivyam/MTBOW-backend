@@ -77,7 +77,16 @@ const getContestInfo = async (req, res) => {
         `,
         [event_id]
     );
-    res.send(contest_details.rows);
+    const participants = await pool.query(
+	`select count(distinct user_id) as total_teams from teams where contest_id = $1`
+	, [event_id])
+    if(participants.rows.length === 0){
+	return res.json({contest_details: contest_details.rows})
+	}
+    res.json({
+	contest_details: contest_details.rows,
+	participants: participants.rows[0]["total_teams"]
+	});
 };
 
 const expireEvent = async (req, res) => {
