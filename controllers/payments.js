@@ -261,14 +261,26 @@ const paymentCallback = async (req, res) => {
             [recharge_amount, user_id]
         );
         console.log("in success=true consigtion");
-        return
+        return;
     }
     // we need to change the payment status accordingly
     if (cb_response.code) {
-	await pool.query(`UPDATE recharge_request set recharge_status = $1 where user_id = $2 and transaction_id = $3`, [cb_response.code, user_id, transaction_id])
+        await pool.query(
+            `UPDATE recharge_request set recharge_status = $1 where user_id = $2 and transaction_id = $3`,
+            [cb_response.code, user_id, transaction_id]
+        );
     }
     console.log("didnt go to success===true condition");
     res.json({ status: "transaction failed" });
+};
+
+const allTransactions = async (req, res) => {
+    const user_id_mongo = parseInt(req.headers.user.user_id_mongo);
+    const all_transaction =
+        await pool.query(`select recharge_status, recharge_amount, created_at, transaction_id from recharge_request
+        where user_id = ${user_id_mongo} order by id desc`);
+    if (all_transaction.rows) return res.json([{}]);
+    res.json(all_transaction.rows);
 };
 
 module.exports = {
@@ -277,4 +289,5 @@ module.exports = {
     rechargeFailed,
     initiatePayment,
     paymentCallback,
+    allTransactions,
 };

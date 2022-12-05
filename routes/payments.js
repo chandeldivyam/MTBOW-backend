@@ -6,9 +6,11 @@ const {
     rechargeFailed,
     paymentCallback,
     initiatePayment,
+    allTransactions,
 } = require("../controllers/payments");
 
 router.route("/recharge").post(checkAuth, initiatePayment);
 router.route("/callback/:id").post(paymentCallback);
+router.route("/transactions").get(checkAuth, allTransactions);
 
 module.exports = router;
