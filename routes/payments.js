@@ -4,10 +4,13 @@ const {
     generateToken,
     rechargeSuccess,
     rechargeFailed,
+    paymentCallback,
+    initiatePayment,
+    allTransactions,
 } = require("../controllers/payments");
 
-router.route("/recharge").post(checkAuth, generateToken);
-router.route("/recharge/success").post(checkAuth, rechargeSuccess);
-router.route("/recharge/failed").post(checkAuth, rechargeFailed);
+router.route("/recharge").post(checkAuth, initiatePayment);
+router.route("/callback/:id").post(paymentCallback);
+router.route("/transactions").get(checkAuth, allTransactions);
 
 module.exports = router;
