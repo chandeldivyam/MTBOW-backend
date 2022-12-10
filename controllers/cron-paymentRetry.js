@@ -22,7 +22,7 @@ cron.schedule("* * * * *", async () => {
                 "###" +
                 process.env.PHONEPE_UAT_KEYINDEX;
             const phonepe_response = await axios.get(
-                `https://api-preprod.phonepe.com/apis/hermes/pg/v1/status/PGTESTPAYUAT/${row_data.transaction_id}`,
+                `https://api.phonepe.com/apis/hermes/pg/v1/status/PGTESTPAYUAT/${row_data.transaction_id}`,
                 {
                     headers: {
                         "Content-Type": "application/json",

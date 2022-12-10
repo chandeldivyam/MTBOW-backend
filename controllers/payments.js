@@ -140,7 +140,7 @@ const initiatePayment = async (req, res) => {
         merchantTransactionId: transaction_id,
         merchantUserId: "MUID" + user_id_mongo,
         amount: 100 * amount,
-        redirectUrl: "https://play.mtbow.com/payments",
+        redirectUrl: "https://play.mtbow.com/transactions",
         redirectMode: "POST",
         callbackUrl: callbackUrl,
         mobileNumber: phone,
@@ -164,7 +164,7 @@ const initiatePayment = async (req, res) => {
         }),
     };
     const payment_initiation_response = await fetch(
-        "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
+        "https://api.phonepe.com/apis/hermes/pg/v1/pay",
         options
     )
         .then((response) => response.json())
@@ -279,7 +279,7 @@ const allTransactions = async (req, res) => {
     const all_transaction =
         await pool.query(`select recharge_status, recharge_amount, created_at, transaction_id from recharge_request
         where user_id = ${user_id_mongo} order by id desc`);
-    if (all_transaction.rows) return res.json([{}]);
+    if (all_transaction.rows === 0) return res.json([{}]);
     res.json(all_transaction.rows);
 };
 
