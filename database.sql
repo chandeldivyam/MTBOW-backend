@@ -68,3 +68,25 @@ CREATE TABLE recharge_request(
     recharge_amount INT,
     recharge_status varchar(255)
 );
+
+CREATE TABLE verification(
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ,
+    user_id INT,
+    name_pan VARCHAR(255),
+    pan_card_number VARCHAR(255),
+    pan_verification_status VARCHAR(255),
+    name_in_upi VARCHAR(255),
+    upi_id VARCHAR(255),
+    upi_verification_status VARCHAR(255)
+);
+
+CREATE TABLE withdraw_request(
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ,
+    user_id INT,
+    withdraw_amount INT,
+    withdraw_status varchar(255)
+);
