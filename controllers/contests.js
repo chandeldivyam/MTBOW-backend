@@ -112,12 +112,15 @@ const expireEvent = async (req, res) => {
         rank2: [],
         top50_percentile: [],
     };
-    const prize_pool =
-        parseInt(leaderboard.rows.length) *
-        parseInt(contest_expired.rows[0]["participation_fee"]);
+
+    let prize_pool = parseInt(leaderboard.rows.length) * parseInt(contest_expired.rows[0]["participation_fee"]);
+
+    if( parseInt(contest_expired.rows[0]["participation_fee"]) === 0){
+        prize_pool = 250;
+    }
     const total_participants = parseInt(leaderboard.rows.length);
 
-    if (total_participants > 0 && total_participants <= 5) {
+    if (parseInt(contest_expired.rows[0]["participation_fee"]) === 0 || (total_participants > 0 && total_participants <= 5)) {
         for (leaderboard_item of leaderboard.rows) {
             if (parseInt(leaderboard_item.rank) === 1) {
                 winners.rank1.push(leaderboard_item.user_id);
