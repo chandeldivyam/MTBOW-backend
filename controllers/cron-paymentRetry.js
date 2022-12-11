@@ -9,29 +9,30 @@ cron.schedule("* * * * *", async () => {
 	console.log("In the cron");
         const payment_ids = await pool.query(
             `select user_id, transaction_id, created_at, recharge_status from recharge_request where recharge_status in ('ACTIVE', 'PAYMENT_PENDING')
-            and created_at >= now() - interval '15' minute
-            and created_at <= now() - interval '3' minute
+             and created_at >= now() - interval '15' minute
+	     and created_at < now() - interval '2' minute
             `
         );
-        for (let row_data of payment_ids.rows) {
-            const x_verify =
+        for (let row_data of payment_ids.rows){
+	    const x_verify =
                 signRequest(
-                    `/pg/v1/status/PGTESTPAYUAT/${row_data.transaction_id}` +
+                    `/pg/v1/status/${process.env.PHONEPE_UAT_MID}/${row_data.transaction_id}` +
                         process.env.PHONEPE_UAT_KEY
                 ) +
                 "###" +
                 process.env.PHONEPE_UAT_KEYINDEX;
             const phonepe_response = await axios.get(
-                `https://api.phonepe.com/apis/hermes/pg/v1/status/PGTESTPAYUAT/${row_data.transaction_id}`,
+                `https://api.phonepe.com/apis/hermes/pg/v1/status/${process.env.PHONEPE_UAT_MID}/${row_data.transaction_id}`,
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        "X-MERCHANT-ID": "PGTESTPAYUAT",
+                        "X-MERCHANT-ID": process.env.PHONEPE_UAT_MID,
                         "X-VERIFY": x_verify,
                         accept: "application/json",
                     },
                 }
             );
+     	    console.log(phonepe_response.data.code);
             if (phonepe_response.data.code === "PAYMENT_PENDING") {
                 await pool.query(
                     `UPDATE recharge_request set recharge_status = $1 where user_id = $2 and transaction_id = $3`,
@@ -68,6 +69,7 @@ cron.schedule("* * * * *", async () => {
                         row_data.transaction_id,
                     ]
                 );
+		console.log("changed from the cron")
             }
         }
     } catch (error) {
