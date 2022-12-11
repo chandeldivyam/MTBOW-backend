@@ -20,7 +20,7 @@ const createTeam = async (req, res) => {
     if (Date.now() >= new Date(contest_expired.rows[0].event_start_time)) {
         return res.status(400).send("The event has alredy started");
     }
-    const participation_fee = contest_expired.rows[0]["participation_fee"];
+    const participation_fee = Number(contest_expired.rows[0]["participation_fee"]);
     const alreadyParticipated = await pool.query(
         `SELECT * FROM teams where user_id = $1 and contest_id = $2`,
         [user_id_mongo, contest_id]
@@ -35,9 +35,18 @@ const createTeam = async (req, res) => {
         [user_id_mongo]
     );
     const { promotional, topup, winnings } = balance.rows[0];
-    if (promotional + winnings + topup < participation_fee) {
+    if (Number(promotional) + Number(winnings) + Number(topup) < participation_fee) {
         return res.status(400).send("Insufficient balance");
     }
+
+    if(participation_fee === 0){
+        const newTeamZero = await pool.query(
+            `INSERT INTO teams (user_id, contest_id, team, reward) VALUES ($1, $2, $3, $4) RETURNING *`,
+            [user_id_mongo, contest_id, browser_ids, 0]
+        );
+        return res.status(200).json(newTeamZero);
+    }
+
     const { winnings_left, topup_left, promotional_left } = balanceCalculator(
         winnings,
         topup,
