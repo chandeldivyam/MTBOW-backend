@@ -90,3 +90,46 @@ CREATE TABLE withdraw_request(
     withdraw_amount INT,
     withdraw_status varchar(255)
 );
+
+CREATE TABLE video_contests(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    event_start_time TIMESTAMPTZ NOT NULL,
+    event_end_time TIMESTAMPTZ NOT NULL,
+    participation_fee INT,
+    is_expired BOOLEAN,
+    image_url VARCHAR(255),
+    all_video_ids varchar(255) ARRAY
+);
+
+CREATE TABLE video_points(
+    id SERIAL PRIMARY KEY,
+    video_id varchar(255),
+    contest_id INT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    channel_title VARCHAR(255),
+    video_title VARCHAR(255),
+    video_thumbnail VARCHAR(255),
+    channel_thumbnail VARCHAR(255),
+    score INT,
+    extra_details JSONB DEFAULT '{"like_points": 0, "view_points": 0, "comment_points": 0}'
+);
+
+CREATE TABLE video_teams(
+    id SERIAL PRIMARY KEY,
+    user_id INT,
+    video_contest_id INT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    video_team varchar(255) ARRAY,
+    reward INT
+);
+
+CREATE TABLE video_stats(
+    id SERIAL PRIMARY KEY,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    video_id VARCHAR(255),
+    video_views BIGINT,
+    video_likes BIGINT,
+    video_comments BIGINT
+);

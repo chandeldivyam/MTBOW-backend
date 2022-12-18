@@ -3,7 +3,9 @@ require("express-async-errors");
 const express = require("express");
 const pool = require("./db/postgreDb");
 const teamsRouter = require("./routes/teams");
+const videoTeamsRouter = require("./routes/videoContest/videoTeams")
 const contestsRouter = require("./routes/contests");
+const videoContestRouter = require("./routes/videoContest/videoContests")
 const { connectMongoDB } = require("./db/mongoConnect");
 const authRouter = require("./routes/auth");
 const checkAuth = require("./middleware/checkAuth");
@@ -31,6 +33,8 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/creator", creatorRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use("/api/v1/payments", paymentRouter);
+app.use("/api/v1/videocontests", videoContestRouter);
+app.use("/api/v1/videoteams", videoTeamsRouter);
 
 app.use((err, req, res, next) => {
     console.log(err);
