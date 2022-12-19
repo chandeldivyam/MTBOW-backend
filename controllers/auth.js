@@ -19,7 +19,7 @@ const registerUser = async (req, res, next) => {
                 [phone]
             );
             if (user_exist.rowCount > 0) {
-                next({ status: 400, message: PHONE_ALREADY_EXISTS_ERR });
+                res.status(400).json({success: false, message: "user already exists"})
                 return;
             }
             res.status(200).json({
