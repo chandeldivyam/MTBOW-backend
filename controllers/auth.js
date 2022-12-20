@@ -12,6 +12,7 @@ const { generateOTP, fast2smsSend } = require("../utils/otp");
 const registerUser = async (req, res, next) => {
     try {
         let { phone, name } = req.body;
+        phone = phone.trim()
         const phoneExist = await User.findOne({ phone });
        if (phoneExist) {
             const user_exist = await pool.query(
@@ -35,7 +36,7 @@ const registerUser = async (req, res, next) => {
             await phoneExist.save();
             await fast2smsSend(
                 {
-                    message: `Your OTP for creators fantasy is ${otp}`,
+                    message: `OTP for MTBOW is ${otp}`,
                     contactNumber: phone,
                 },
                 next
@@ -63,7 +64,7 @@ const registerUser = async (req, res, next) => {
         // send otp to phone number
         await fast2smsSend(
             {
-                message: `Your OTP for creators fantasy is ${otp}`,
+                message: `OTP for MTBOW is ${otp}`,
                 contactNumber: user.phone,
             },
             next
@@ -100,7 +101,7 @@ const loginUser = async (req, res, next) => {
         // send otp to phone number
         await fast2smsSend(
             {
-                message: `Your OTP for creators fantasy is ${otp}`,
+                message: `OTP for MTBOW is ${otp}`,
                 contactNumber: user.phone,
             },
             next
