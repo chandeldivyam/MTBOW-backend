@@ -163,7 +163,7 @@ const verifyOTPSignup = async (req, res, next) => {
         }
         else{
             const newUser = await pool.query(
-                `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code) VALUES ($1, $2, $3, $4, $5, %6)`,
+                `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code) VALUES ($1, $2, $3, $4, $5, $6)`,
                 [user.name, user.phone, 0, 0, 0, referral_code]
             );
         }
