@@ -33,6 +33,7 @@
     "node-cron": "^3.0.2",
     "node-fetch": "^2.6.7",
     "pg": "^8.7.3",
+    "referral-code-generator": "^1.0.8",
     "twilio": "^3.80.1"
   },
   "devDependencies": {

@@ -27,7 +27,9 @@ CREATE TABLE user_info(
     phone VARCHAR(55),
     promotional float,
     winnings float,
-    topup float
+    topup float,
+    referral_code VARCHAR(55),
+    referral_code_used VARCHAR(55)
 );
 
 CREATE TABLE contests(
