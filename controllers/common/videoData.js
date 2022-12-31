@@ -60,10 +60,19 @@ const videoStats = async(video_ids) => {
         "id": video_ids
     })
     for (let item of video_response.data.items){
-        responseObject[item.id] = {
-            video_views: Number(item.statistics.viewCount),
-            video_likes: Number(item.statistics.likeCount),
-            video_comments: Number(item.statistics.commentCount)
+        if(!item.statistics.likeCount){
+            responseObject[item.id] = {
+                video_views: Number(item.statistics.viewCount),
+                video_likes: 0,
+                video_comments: Number(item.statistics.commentCount)
+            }
+        }
+        else{
+            responseObject[item.id] = {
+                video_views: Number(item.statistics.viewCount),
+                video_likes: Number(item.statistics.likeCount),
+                video_comments: Number(item.statistics.commentCount)
+            }
         }
     }
     const query_arr = []
