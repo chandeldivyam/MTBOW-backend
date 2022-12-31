@@ -58,7 +58,13 @@ const getLiveVideoContests = async (req, res) => {
         const liveVideoEvents = await pool.query(`
             SELECT id, name, image_url, event_start_time, participation_fee from video_contests where is_expired is false
         `)
-        res.status(200).json(liveVideoEvents.rows);
+        const previous_winner = await pool.query(`
+        select ui.name,reward from video_teams vt left join user_info ui on ui.id = vt.user_id 
+        where video_contest_id = (select max(id) from video_contests where is_expired is true) 
+        order by 2 desc 
+        limit 1;
+        `)
+        res.status(200).json({liveVideoContest: liveVideoEvents.rows, previousWinner: previous_winner.rows[0].name});
     } catch (error) {
         console.log(error) 
         res.status(500).json({success: false, message: "Some error occoured while fetching live video events"})
@@ -115,7 +121,7 @@ const expireVideoContest = async (req, res) => {
     };
     let prize_pool = parseInt(leaderboard.rows.length) * parseInt(contest_expired.rows[0]["participation_fee"]);
     if( parseInt(contest_expired.rows[0]["participation_fee"]) === 0){
-        prize_pool = 250;
+        prize_pool = 300;
     }
     const total_participants = parseInt(leaderboard.rows.length);
     
@@ -129,13 +135,13 @@ const expireVideoContest = async (req, res) => {
                 winners.rank2.push(leaderboard_item.user_id);
                 continue;
             }
-            if (parseInt(leaderboard_item.rank) > 2) {
+            if (parseInt(leaderboard_item.rank) > 2 & parseInt(leaderboard_item.rank) < 6) {
                 winners.top50_percentile.push(leaderboard_item.user_id);
             }
         }
         if (winners.rank1.length > 0) {
             const rank_1 = "(" + winners.rank1.join() + ")";
-            let winning_amount = (0.7 * prize_pool) / winners.rank1.length;
+            let winning_amount = (0.35 * prize_pool) / winners.rank1.length;
             const rank_1_update = await pool.query(
                 `
             UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_1}
@@ -151,7 +157,7 @@ const expireVideoContest = async (req, res) => {
         }
         if (winners.rank2.length > 0) {
             const rank_2 = "(" + winners.rank2.join() + ")";
-            let winning_amount = (0.3 * prize_pool) / winners.rank2.length;
+            let winning_amount = (0.25 * prize_pool) / winners.rank2.length;
             const rank_2_update = await pool.query(
                 `
             UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_2}
@@ -160,6 +166,19 @@ const expireVideoContest = async (req, res) => {
             const rank2_reward = await pool.query(
                 `
                 UPDATE video_teams set reward = ${winning_amount} where user_id in ${rank_2} and video_contest_id = $1
+            `,
+                [contest_id]
+            );
+        }
+        if (winners.top50_percentile.length > 0) {
+            const rank_till_5 = "(" + winners.top50_percentile.join() + ")";
+            let winning_amount = (0.4 * prize_pool) / winners.top50_percentile.length;
+            const rank_till_5_update = await pool.query(`
+                UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_till_5}   
+            `)
+            const rank5_reward = await pool.query(
+                `
+                UPDATE video_teams set reward = ${winning_amount} where user_id in ${rank_till_5} and video_contest_id = $1
             `,
                 [contest_id]
             );
