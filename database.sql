@@ -135,3 +135,13 @@ CREATE TABLE video_stats(
     video_likes BIGINT,
     video_comments BIGINT
 );
+
+CREATE TABLE referral_ledgers(
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    referrer_user_id INT,
+    referee_user_id INT,
+    amount INT,
+    reason VARCHAR(255),
+    video_contest_id INT
+);

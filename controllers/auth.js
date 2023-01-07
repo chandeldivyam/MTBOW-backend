@@ -152,7 +152,7 @@ const verifyOTPSignup = async (req, res, next) => {
         let referral_code = "";
         while(true){
             referral_code = referralCodeGenerator.alphaNumeric('uppercase', 3, 1)
-            referral_unique = await pool.query(`SELECT * FROM user_info where referral_code = $1`, [referral_code])
+            let referral_unique = await pool.query(`SELECT * FROM user_info where referral_code = $1`, [referral_code])
             if(referral_unique.rowCount === 0) break
         }
         if(referral_code_used){

@@ -37,12 +37,24 @@ const createVideoTeam = async(req, res) => {
     if (Number(promotional) + Number(winnings) + Number(topup) < participation_fee) {
         return res.status(400).send("Insufficient balance");
     }
-    console.log("HERE")
+
     if(participation_fee === 0){
         const newTeamZero = await pool.query(
             `INSERT INTO video_teams (user_id, video_contest_id, video_team, reward) VALUES ($1, $2, $3, $4) RETURNING *`,
             [user_id_mongo, contest_id, video_ids, 0]
         );
+        const referrer_user_zero = await pool.query(`
+            UPDATE user_info SET winnings = (winnings + 5) WHERE referral_code in (select ui.referral_code_used
+                from user_info ui
+                left join verification on verification.user_id = ui.id
+                where ui.id = $1 and verification.pan_verification_status = 'SUCCESS'
+                LIMIT 1) RETURNING id
+        `, [user_id_mongo])
+        if(referrer_user_zero.rows.length === 1){
+            await pool.query(`
+                INSERT INTO referral_ledgers (created_at, referrer_user_id, referee_user_id, amount, reason, video_contest_id) VALUES (NOW(), $1, $2, 5, 'TEAM_CREATION', $3)
+            `, [Number(referrer_user_zero.rows[0].id), user_id_mongo, contest_id])
+        }
         return res.status(200).json(newTeamZero);
     }
 
@@ -62,6 +74,19 @@ const createVideoTeam = async(req, res) => {
         UPDATE user_info set promotional = $1, winnings = $2, topup = $3 where id = $4
     `,[promotional_left, winnings_left, topup_left, user_id_mongo]
     );
+
+    const referrer_user = await pool.query(`
+            UPDATE user_info SET winnings = (winnings + 5) WHERE referral_code in (select ui.referral_code_used
+                from user_info ui
+                left join verification on verification.user_id = ui.id
+                where ui.id = $1 and verification.pan_verification_status = 'SUCCESS'
+                LIMIT 1) RETURNING id
+        `, [user_id_mongo])
+        if(referrer_user.rows.length === 1){
+            await pool.query(`
+                INSERT INTO referral_ledgers (created_at, referrer_user_id, referee_user_id, amount, reason, video_contest_id) VALUES (NOW(), $1, $2, 5, 'TEAM_CREATION', $3)
+            `, [Number(referrer_user.rows[0].id), user_id_mongo, contest_id])
+        }
     res.status(200).json(newTeam);
 } 
 

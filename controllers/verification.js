@@ -138,30 +138,46 @@ const checkPan = async(req, res) => {
     }
 }
 
-/* 
-const pan_verification = await axios({
-            method: 'post',
-            url: 'https://test.zoop.one/api/v1/in/identity/pan/demographic',
-            headers: { 
-              'api-key': process.env.ZOOP_KEY_TEST, 
-              'app-id': process.env.ZOOP_APP_ID_TEST, 
-              'Content-Type': 'application/json'
-            },
-            data : {
-                "mode": "sync",
-                "data": {
-                  "customer_pan_number": pan,
-                  "customer_dob": dob,
-                  "consent": "Y",
-                  "consent_text": "I_hear_by_declare_my_consent_agreement_for_fetching_my_information_via_ZOOP_API"
-                }
-              }
-        })
-*/
+const validatePanManual = async(req, res) => {
+    try {
+        const user_id_mongo = parseInt(req.headers.user.user_id_mongo);
+        if(user_id_mongo !== 1) return res.status(403).json({message: "invalid auth"})
+        const user_id = Number(req.body.user_id)
+        const user_check_pending = await pool.query(`
+            select ui.referral_code_used, verification.* 
+            from user_info ui 
+            left join verification on verification.user_id = ui.id 
+            where ui.id = $1;
+        `, [user_id])
+        if(user_check_pending.rows[0].pan_verification_status !== 'PENDING'){
+            return res.status(400).json({success: false, message: "Status not pending"})
+        }
+        if(!user_check_pending.rows[0].referral_code_used){
+            await pool.query(`UPDATE verification SET pan_verification_status = 'SUCCESS' where user_id = $1`, [user_id])
+            return res.json({success: true})
+        }
+        else if(user_check_pending.rows[0].referral_code_used){
+            const referrer_user = await pool.query(
+                `UPDATE user_info SET winnings = (winnings + 10) where referral_code = $1 RETURNING id`
+            ,[user_check_pending.rows[0].referral_code_used])
+            await pool.query(`with table1 as (UPDATE verification SET pan_verification_status = 'SUCCESS' where user_id = $1) 
+                , table2 as (UPDATE user_info SET winnings = (winnings + 10) where id = $1)
+                INSERT INTO referral_ledgers (created_at, referrer_user_id, amount, reason) VALUES (NOW(), $1, 10, 'KYC_BONUS')
+            `, [user_id])
+            await pool.query(`
+                INSERT INTO referral_ledgers (created_at, referrer_user_id, referee_user_id, amount, reason) VALUES (NOW(), $1, $2, 10, 'KYC_VERIFICATION')
+            `, [Number(referrer_user.rows[0].id), user_id])
+            return res.json({success: true, referrer_user})
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
 
 module.exports = {
     validateVpa, 
     checkVpa,
     validatePan,
-    checkPan
+    checkPan,
+    validatePanManual
 }
