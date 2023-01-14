@@ -24,7 +24,7 @@ const createVideoContest = async (req, res) => {
         const video_data = await videoData(video_ids)
 
         let query = video_ids.map((item) => {
-            return `('${item}', '${contest_id}', '${video_data[item].channel_title}', '${realEscapeString(video_data[item].video_title)}', '${video_data[item].video_thumbnail}', '${video_data[item].channel_thumbnail}',0)`;
+            return `('${item}', ${contest_id}, '${realEscapeString(video_data[item].channel_title)}', '${realEscapeString(video_data[item].video_title)}', '${video_data[item].video_thumbnail}', '${video_data[item].channel_thumbnail}',0)`;
         });
         const points = pool.query(
             `INSERT INTO video_points (video_id, contest_id, channel_title, video_title, video_thumbnail, channel_thumbnail, score) VALUES ${query}`
