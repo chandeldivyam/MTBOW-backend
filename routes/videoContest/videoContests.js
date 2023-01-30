@@ -6,10 +6,12 @@ const {
     getExpiredVideoContests,
     getLiveVideoContests,
     getVideoContestInfo,
-    expireVideoContest
+    expireVideoContest,
+    createAutomatedVideoContest
 } = require("../../controllers/videoContest/videoContests")
 
 router.route("/").post(createVideoContest);
+router.route("/auto").post(createAutomatedVideoContest);
 router.route("/expired").get(checkAuth, getExpiredVideoContests);
 router.route("/live").get(checkAuth, getLiveVideoContests);
 router.route("/contestInfo/:id").get(checkAuth, getVideoContestInfo);
