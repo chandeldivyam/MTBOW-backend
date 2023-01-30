@@ -1,6 +1,6 @@
 const pool = require("../../db/postgreDb");
 const { realEscapeString } = require("../common/helper");
-const { videoData } = require("../common/videoData");
+const { videoData, generateVideoData, generateVideoDataGenre } = require("../common/videoData");
 
 
 const createVideoContest = async (req, res) => {
@@ -278,10 +278,50 @@ const expireVideoContest = async (req, res) => {
     });
 }
 
+const createAutomatedVideoContest = async (req, res) => {
+    try {
+        const {
+            contest_name,
+            image_url,
+            event_start_time,
+            event_end_time,
+            participation_fee,
+            genre
+        } = req.body;
+        if(genre){
+            var video_ids = await generateVideoDataGenre(genre)
+            if(typeof video_ids === "string") return res.status(400).json({success: false, message: video_ids})
+        }
+        else{
+            var video_ids = await generateVideoData()
+        }
+        const newVideoContest = await pool.query(`
+            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee,])
+    
+        const contest_id = Number(newVideoContest.rows[0].id);
+    
+        //fetch data from youtube APIs regarding video thumbnail + channel thumbnail images + video_url + channel title 
+        const video_data = await videoData(video_ids)
+
+        let query = video_ids.map((item) => {
+            return `('${item}', ${contest_id}, '${realEscapeString(video_data[item].channel_title)}', '${realEscapeString(video_data[item].video_title)}', '${video_data[item].video_thumbnail}', '${video_data[item].channel_thumbnail}',0)`;
+        });
+        const points = pool.query(
+            `INSERT INTO video_points (video_id, contest_id, channel_title, video_title, video_thumbnail, channel_thumbnail, score) VALUES ${query}`
+        );
+        res.status(200).json({success: true, video_data})
+    } catch (error) {
+        console.log(error)
+        res.status(400).json({success: false, error: error})
+    }
+}
+
 module.exports = {
     createVideoContest,
     getExpiredVideoContests,
     getLiveVideoContests,
     getVideoContestInfo,
-    expireVideoContest
+    expireVideoContest,
+    createAutomatedVideoContest
 }

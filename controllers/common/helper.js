@@ -43,9 +43,38 @@ function realEscapeString (str) {
     });
 }
 
+function initialScoreCalculator (release_time, views, comments, likes){
+    const time_taken = Math.floor(((new Date() - new Date(release_time))/1000/60) << 0);
+    return Math.floor((Math.floor(Number(views)/10) + Number(likes) + (2*Number(comments))) / time_taken);
+}
+
+const sleep = async function (ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+function shuffle(arra1) {
+    var ctr = arra1.length, temp, index;
+
+// While there are elements in the array
+    while (ctr > 0) {
+// Pick a random index
+        index = Math.floor(Math.random() * ctr);
+// Decrease ctr by 1
+        ctr--;
+// And swap the last element with it
+        temp = arra1[ctr];
+        arra1[ctr] = arra1[index];
+        arra1[index] = temp;
+    }
+    return arra1;
+}
+
 module.exports = {
     encodeRequest,
     signRequest,
     decodeRequest,
-    realEscapeString
+    realEscapeString,
+    initialScoreCalculator,
+    sleep,
+    shuffle
 };
