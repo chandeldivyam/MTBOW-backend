@@ -136,7 +136,6 @@ const generateVideoData = async() => {
                 "pageToken": next_page_token,
                 "chart": "mostPopular"
             });
-            console.log(`In the while loop with token : ${next_page_token}`)
             next_page_token = video_response.data.nextPageToken ? video_response.data.nextPageToken : false
             for(let item of video_response.data.items){
                 if(!item.id || !item.snippet.channelTitle || !item.snippet.title || !item.snippet.thumbnails.standard || !item.snippet.thumbnails.standard.url || !item.snippet.publishedAt) continue
@@ -253,7 +252,6 @@ const generateVideoDataGenre = async(genre) => {
         if(video_response.data.pageInfo.totalResults <= 21){
             return "Not enough videos in this genre"
         }
-        console.log(video_response.data.pageInfo)
         const temp_obj_videos = {}
         if(!video_response.data.items){
             console.log("Missing Items in the api response")
