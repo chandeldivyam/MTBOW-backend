@@ -13,6 +13,7 @@ const creatorRouter = require("./routes/creator");
 const walletRouter = require("./routes/wallet");
 const paymentRouter = require("./routes/payments");
 const referRouter = require("./routes/refer")
+const scratchCardRouter = require("./routes/scratchCards")
 
 const cors = require("cors");
 const SERVER_ERR = require("./middleware/errors");
@@ -37,6 +38,7 @@ app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/videocontests", videoContestRouter);
 app.use("/api/v1/videoteams", videoTeamsRouter);
 app.use("/api/v1/refer", referRouter);
+app.use("/api/v1/scratchcards", scratchCardRouter)
 
 app.use((err, req, res, next) => {
     console.log(err);

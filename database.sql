@@ -124,7 +124,8 @@ CREATE TABLE video_teams(
     video_contest_id INT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     video_team varchar(255) ARRAY,
-    reward INT
+    reward INT,
+    first_seen BOOLEAN
 );
 
 CREATE TABLE video_stats(
@@ -144,4 +145,15 @@ CREATE TABLE referral_ledgers(
     amount INT,
     reason VARCHAR(255),
     video_contest_id INT
+);
+
+CREATE TABLE scratch_card(
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ, 
+    card_type VARCHAR(55),
+    user_id INT,
+    video_contest_id INT,
+    is_seen BOOLEAN,
+    amount INT
 );

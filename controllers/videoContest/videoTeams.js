@@ -3,7 +3,6 @@ const pool = require("../../db/postgreDb");
 
 const createVideoTeam = async(req, res) => {
     let { contest_id, video_ids } = req.body
-    console.log({contest_id, video_ids})
     if(video_ids.length !== 11){
         return res.status(400).send("Team size can only be eleven")
         }
@@ -40,8 +39,8 @@ const createVideoTeam = async(req, res) => {
 
     if(participation_fee === 0){
         const newTeamZero = await pool.query(
-            `INSERT INTO video_teams (user_id, video_contest_id, video_team, reward) VALUES ($1, $2, $3, $4) RETURNING *`,
-            [user_id_mongo, contest_id, video_ids, 0]
+            `INSERT INTO video_teams (user_id, video_contest_id, video_team, reward, first_seen) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [user_id_mongo, contest_id, video_ids, 0, false]
         );
         const referrer_user_zero = await pool.query(`
             UPDATE user_info SET winnings = (winnings + 5) WHERE referral_code in (select ui.referral_code_used
@@ -66,8 +65,8 @@ const createVideoTeam = async(req, res) => {
     );
 
     const newTeam = await pool.query(
-        `INSERT INTO video_teams (user_id, video_contest_id, video_team, reward) VALUES ($1, $2, $3, $4) RETURNING *`,
-        [user_id_mongo, contest_id, video_ids, 0]
+        `INSERT INTO video_teams (user_id, video_contest_id, video_team, reward, first_seen) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [user_id_mongo, contest_id, video_ids, 0, false]
     );
 
     await pool.query(`
@@ -97,7 +96,22 @@ const getVideoTeamDetails = async(req, res) => {
         `select * from video_teams where user_id = $1 and video_contest_id = $2`,
         [user_id_mongo, video_contest_id]
     );
-    console.log(videoTeamDetails)
+    res.json(videoTeamDetails)
+}
+
+const getVideoTeamDetailsExpired = async(req, res) => {
+    const video_contest_id = parseInt(req.params.id);
+    const user_id_mongo = parseInt(req.headers.user.user_id_mongo);
+    const videoTeamDetails = await pool.query(
+        `select * from video_teams vt join scratch_card sc on sc.user_id = vt.user_id and sc.video_contest_id = vt.video_contest_id where vt.user_id = $1 and vt.video_contest_id = $2`,
+        [user_id_mongo, video_contest_id]
+    );
+    if(!videoTeamDetails.rows[0]?.first_seen){
+        await pool.query(
+            `UPDATE video_teams SET first_seen = true WHERE user_id = $1 and video_contest_id = $2`
+        , [user_id_mongo, video_contest_id]
+        );
+    }
     res.json(videoTeamDetails)
 }
 
@@ -107,11 +121,12 @@ const getVideoTeamScore = async(req, res) => {
     const leaderboard = await pool.query(
         `
         with team_points as (select user_id,unnest(video_team) as video_id from video_teams where video_contest_id = $1)
-        select team_points.user_id, user_info.name, SUM(video_points.score) as total_points, RANK() OVER(ORDER BY SUM(video_points.score) desc) from team_points
+        select team_points.user_id, user_info.name,  scratch_card.card_type,SUM(video_points.score) as total_points, RANK() OVER(ORDER BY SUM(video_points.score) desc) from team_points
             left join video_points on team_points.video_id = video_points.video_id
             left join user_info on team_points.user_id = user_info.id
+            left join scratch_card on scratch_card.user_id = team_points.user_id and scratch_card.video_contest_id = $1
 	    where video_points.contest_id = $2
-            group by 1,2
+            group by 1,2,3
             order by rank;
     `, [contest_id, contest_id]);
 
@@ -164,4 +179,4 @@ const getVideoTeamScoreOther = async(req, res) => {
     res.status(200).json({ team_score_object, score_distribution });
 }
 
-module.exports = {createVideoTeam, getVideoTeamDetails, getVideoTeamScore, getVideoTeamScoreOther}
+module.exports = {createVideoTeam, getVideoTeamDetails, getVideoTeamScore, getVideoTeamScoreOther, getVideoTeamDetailsExpired}

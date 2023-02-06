@@ -17,7 +17,6 @@ const fast2smsSend = async ({ message, contactNumber }, next) => {
             message,
             numbers: [contactNumber],
         });
-        console.log(res);
     } catch (error) {
         next(error);
     }
