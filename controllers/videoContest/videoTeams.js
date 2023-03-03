@@ -102,8 +102,11 @@ const getVideoTeamDetails = async(req, res) => {
 const getVideoTeamDetailsExpired = async(req, res) => {
     const video_contest_id = parseInt(req.params.id);
     const user_id_mongo = parseInt(req.headers.user.user_id_mongo);
-    const videoTeamDetails = await pool.query(
-        `select * from video_teams vt join scratch_card sc on sc.user_id = vt.user_id and sc.video_contest_id = vt.video_contest_id where vt.user_id = $1 and vt.video_contest_id = $2`,
+    const videoTeamDetails = await pool.query(`
+        select vt.video_team, vt.reward, vt.first_seen, sc.card_type
+        from video_teams vt full join scratch_card sc on sc.user_id = vt.user_id and sc.video_contest_id = vt.video_contest_id 
+        where vt.user_id = $1 and vt.video_contest_id = $2
+        `,
         [user_id_mongo, video_contest_id]
     );
     if(!videoTeamDetails.rows[0]?.first_seen){

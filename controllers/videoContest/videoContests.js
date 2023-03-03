@@ -215,7 +215,7 @@ const expireVideoContest = async (req, res) => {
     }
                         
     const expire_event = await pool.query(
-        `UPDATE contests set is_expired = true where id = $1`,
+        `UPDATE video_contests set is_expired = true where id = $1`,
         [contest_id]
     );
     res.status(200).json({
