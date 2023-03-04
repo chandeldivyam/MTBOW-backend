@@ -1,5 +1,5 @@
 const pool = require("../../db/postgreDb");
-const { realEscapeString } = require("../common/helper");
+const { realEscapeString, randomisePoolArray, distributeWinnings } = require("../common/helper");
 const { videoData, generateVideoData, generateVideoDataGenre } = require("../common/videoData");
 
 
@@ -72,7 +72,7 @@ const getLiveVideoContests = async (req, res) => {
         order by 2 desc 
         limit 1;
         `)
-        res.status(200).json({liveVideoContest: liveVideoEvents.rows, previousWinner: previous_winner.rows[0].name});
+        res.status(200).json({liveVideoContest: liveVideoEvents.rows, previousWinner: "divyam" });
     } catch (error) {
         console.log(error) 
         res.status(500).json({success: false, message: "Some error occoured while fetching live video events"})
@@ -133,64 +133,48 @@ const expireVideoContest = async (req, res) => {
     }
     const total_participants = parseInt(leaderboard.rows.length);
     
-    if (parseInt(contest_expired.rows[0]["participation_fee"]) === 0 || (total_participants > 0 && total_participants <= 5)) {
-        for (leaderboard_item of leaderboard.rows) {
-            if (parseInt(leaderboard_item.rank) === 1) {
-                winners.rank1.push(leaderboard_item.user_id);
-                continue;
+    if (parseInt(contest_expired.rows[0]["participation_fee"]) === 0) {
+
+        //create an array of prize which we want to give to the users
+        let prizePoolArray = [100, 75, 35, 30, 25]
+        prizePoolArray = randomisePoolArray(prizePoolArray)
+
+        //generate prize distribution 
+        
+        let winningsArray 
+        if(total_participants < 5){
+            winningsArray = distributeWinnings(leaderboard.rows, prizePoolArray.slice(0,total_participants))
+        }
+        else{
+            winningsArray = distributeWinnings(leaderboard.rows, prizePoolArray)
+        }
+        winningsArray = winningsArray.map(entry => {
+            if(Number(entry.rank) === 1) {
+              return {...entry, card_type: 'GOLDEN'};
             }
-            if (parseInt(leaderboard_item.rank) === 2) {
-                winners.rank2.push(leaderboard_item.user_id);
-                continue;
+            if(Number(entry.rank) === 2) {
+              return {...entry, card_type: 'SILVER'};
             }
-            if (parseInt(leaderboard_item.rank) > 2 & parseInt(leaderboard_item.rank) < 6) {
-                winners.top50_percentile.push(leaderboard_item.user_id);
+            if(Number(entry.rank) >= 3 && Number(entry.rank) <= 5) {
+              return {...entry, card_type: 'BRONZE'};
             }
-        }
-        if (winners.rank1.length > 0) {
-            const rank_1 = "(" + winners.rank1.join() + ")";
-            let winning_amount = (0.35 * prize_pool) / winners.rank1.length;
-            const rank_1_update = await pool.query(
-                `
-            UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_1}
-        `
-            );
-            const rank1_reward = await pool.query(
-                `
-                UPDATE video_teams set reward = ${winning_amount} where user_id in ${rank_1} and video_contest_id = $1
-            `,
-                [contest_id]
-            );
-            winning_amount = 0;
-        }
-        if (winners.rank2.length > 0) {
-            const rank_2 = "(" + winners.rank2.join() + ")";
-            let winning_amount = (0.25 * prize_pool) / winners.rank2.length;
-            const rank_2_update = await pool.query(
-                `
-            UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_2}
-            `
-            );
-            const rank2_reward = await pool.query(
-                `
-                UPDATE video_teams set reward = ${winning_amount} where user_id in ${rank_2} and video_contest_id = $1
-            `,
-                [contest_id]
-            );
-        }
-        if (winners.top50_percentile.length > 0) {
-            const rank_till_5 = "(" + winners.top50_percentile.join() + ")";
-            let winning_amount = (0.4 * prize_pool) / winners.top50_percentile.length;
-            const rank_till_5_update = await pool.query(`
-                UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_till_5}   
-            `)
-            const rank5_reward = await pool.query(
-                `
-                UPDATE video_teams set reward = ${winning_amount} where user_id in ${rank_till_5} and video_contest_id = $1
-            `,
-                [contest_id]
-            );
-        }
+            if(Number(entry.rank) > 5) {
+              if(Math.random() < 0.6) {
+                return {...entry, card_type: 'BLUE', prize: Math.random() > 0.3 ? 0 : Math.floor(Math.random() * 15) + 1};
+              }
+            }
+            return entry;
+          });
+
+        //add the name of the scratch cards which should be alloted to the respective users + also add some random blue card holders
+        let temp_query = winningsArray
+                        .filter(entry => entry.prize !== undefined && entry.card_type !== undefined)
+                        .map(entry => `('${entry.card_type}', ${entry.user_id}, ${contest_id}, false, ${entry.prize})`);
+        temp_query = temp_query.join(",");
+        await pool.query(`
+          INSERT INTO scratch_card (card_type, user_id, video_contest_id, is_seen, reward) VALUES ${temp_query}
+        `)
+        //add the scratch card to the DB
         const expire_event = await pool.query(
             `UPDATE video_contests set is_expired = true where id = $1`,
             [contest_id]
@@ -199,78 +183,39 @@ const expireVideoContest = async (req, res) => {
             success: true,
         });
     }
-
-    if (leaderboard.rows.length > 0) {
-        for (leaderboard_item of leaderboard.rows) {
-            if (parseInt(leaderboard_item.rank) === 1) {
-                winners.rank1.push(leaderboard_item.user_id);
-                continue;
-            }
-            if (parseInt(leaderboard_item.rank) === 2) {
-                winners.rank2.push(leaderboard_item.user_id);
-                continue;
-            }
-            if (
-                parseInt(leaderboard_item.rank) > 2 &&
-                parseInt(leaderboard_item.rank) <=
-                    Math.ceil(total_participants / 2)
-            ) {
-                winners.top50_percentile.push(leaderboard_item.user_id);
-            }
+    let prizePoolArray = []
+    for(let i = 0; i <= parseInt(total_participants/2); i++){
+        if(i===0){
+            prizePoolArray.push(parseInt(prize_pool * 0.4))
+            continue
+        }
+        if(i===1){
+            prizePoolArray.push(parseInt(prize_pool * 0.2))
+            continue
+        }
+        if(i > 1 && i < Math.floor(total_participants/2)){
+            const last_amount = parseInt((prize_pool * 0.4) / Math.floor(total_participants/2 - 2))
+            prizePoolArray.push(last_amount)
         }
     }
+    //create an array of winnings which needs to be distributed
+    let winningsArray 
+    winningsArray = distributeWinnings(leaderboard.rows, prizePoolArray)
 
-    if (winners.rank1.length > 0) {
-        const rank_1 = "(" + winners.rank1.join() + ")";
-        let winning_amount = (0.4 * prize_pool) / winners.rank1.length;
-        const rank_1_update = await pool.query(
-            `
-        UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_1}
-    `
-        );
-        const rank1_reward = await pool.query(
-            `
-            UPDATE video_teams set reward = ${winning_amount} where user_id in ${rank_1} and video_contest_id = $1
-        `,
-            [contest_id]
-        );
-        winning_amount = 0;
-    }
 
-    if (winners.rank2.length > 0) {
-        const rank_2 = "(" + winners.rank2.join() + ")";
-        let winning_amount = (0.2 * prize_pool) / winners.rank2.length;
-        const rank_2_update = await pool.query(
-            `
-        UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${rank_2}
-        `
-        );
-        const rank2_reward = await pool.query(
-            `
-            UPDATE video_teams set reward = ${winning_amount} where user_id in ${rank_2} and video_contest_id = $1
-        `,
-            [contest_id]
-        );
-    }
+    //use the function distributeWinnings to distribute the winnings.
+    winningsArray = winningsArray.filter(entry => entry.prize !== undefined)
 
-    if (winners.top50_percentile.length > 0) {
-        const top_50 = "(" + winners.top50_percentile.join() + ")";
-        let winning_amount =
-            (0.4 * prize_pool) / winners.top50_percentile.length;
-        const rank_50percentile_update = await pool.query(
-            `
-        UPDATE user_info set winnings = (winnings + ${winning_amount}) where id in ${top_50}
-        `
-        );
-        const rank_50percentile_reward = await pool.query(
-            `
-            UPDATE video_teams set reward = ${winning_amount} where user_id in ${top_50} and video_contest_id = $1
-        `,
-            [contest_id]
-        );
+    for (const winnings of winningsArray){
+        const { user_id, prize } = winnings;
+        await pool.query(`
+            WITH table1 as (UPDATE video_teams SET reward = $1 WHERE user_id = $2 and video_contest_id = $3)
+            UPDATE user_info SET winnings = winnings + $1 WHERE id = $2
+        `, [prize, user_id, contest_id]);
     }
+                        
     const expire_event = await pool.query(
-        `UPDATE contests set is_expired = true where id = $1`,
+        `UPDATE video_contests set is_expired = true where id = $1`,
         [contest_id]
     );
     res.status(200).json({

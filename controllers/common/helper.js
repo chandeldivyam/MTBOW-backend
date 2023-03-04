@@ -69,6 +69,50 @@ function shuffle(arra1) {
     return arra1;
 }
 
+const distributeWinnings = (leaderboard, prizePoolArray) => {
+    const sortedLeaderboard = leaderboard.sort((a, b) => a.rank - b.rank);
+    const countByRank = sortedLeaderboard.reduce((counts, entry) => {
+        if (!counts[entry.rank]) {
+          counts[entry.rank] = 0;
+        }
+        counts[entry.rank]++;
+        return counts;
+      }, {});
+    let prizeIndex = 0
+    while(prizeIndex < prizePoolArray.length){
+        if(countByRank[sortedLeaderboard[prizeIndex].rank] > 1){
+            //give sum of the money with all the same rank
+            const prize = Math.floor(prizePoolArray.slice(prizeIndex, prizeIndex + countByRank[sortedLeaderboard[prizeIndex].rank]).reduce((a, b) => a + b, 0) / countByRank[sortedLeaderboard[prizeIndex].rank]);
+            for(let i = 0; i < countByRank[sortedLeaderboard[prizeIndex].rank]; i++){
+                sortedLeaderboard[i + prizeIndex] = {...sortedLeaderboard[i + prizeIndex], prize}
+            }
+            prizeIndex += countByRank[sortedLeaderboard[prizeIndex].rank]
+        }
+        else{
+            sortedLeaderboard[prizeIndex] = {...sortedLeaderboard[prizeIndex], prize: prizePoolArray[prizeIndex]}
+            prizeIndex += 1
+        }
+    }
+    return sortedLeaderboard
+}
+
+const randomisePoolArray = (prizePoolArray) => {
+    let sum = prizePoolArray.reduce((a, b) => a + b, 0);
+    
+    for (let i = 0; i < prizePoolArray.length; i++) {
+      const randomFactor = (Math.random() - 0.5) * 0.2;
+      prizePoolArray[i] = prizePoolArray[i] + prizePoolArray[i] * randomFactor;
+    }
+    
+    const updatedSum = prizePoolArray.reduce((a, b) => a + b, 0);
+    const factor = sum / updatedSum;
+    
+    for (let i = 0; i < prizePoolArray.length; i++) {
+      prizePoolArray[i] = Math.floor(prizePoolArray[i] * factor);
+    }
+    return(prizePoolArray)
+}
+
 module.exports = {
     encodeRequest,
     signRequest,
@@ -76,5 +120,7 @@ module.exports = {
     realEscapeString,
     initialScoreCalculator,
     sleep,
-    shuffle
+    shuffle,
+    distributeWinnings,
+    randomisePoolArray
 };
