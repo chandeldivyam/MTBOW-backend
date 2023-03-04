@@ -72,7 +72,7 @@ const getLiveVideoContests = async (req, res) => {
         order by 2 desc 
         limit 1;
         `)
-        res.status(200).json({liveVideoContest: liveVideoEvents.rows, previousWinner: "divyam" });
+        res.status(200).json({liveVideoContest: liveVideoEvents.rows, previousWinner: previous_winner.rows[0].name });
     } catch (error) {
         console.log(error) 
         res.status(500).json({success: false, message: "Some error occoured while fetching live video events"})
