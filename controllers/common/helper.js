@@ -113,6 +113,20 @@ const randomisePoolArray = (prizePoolArray) => {
     return(prizePoolArray)
 }
 
+function getRandomItems(arr, numItems) {
+    if (numItems > arr.length) {
+      throw new Error("Cannot select more items than the array contains");
+    }
+  
+    const selectedItems = new Set();
+    while (selectedItems.size < numItems) {
+      const randomIndex = Math.floor(Math.random() * arr.length);
+      selectedItems.add(arr[randomIndex]);
+    }
+  
+    return Array.from(selectedItems);
+  }
+
 module.exports = {
     encodeRequest,
     signRequest,
@@ -122,5 +136,6 @@ module.exports = {
     sleep,
     shuffle,
     distributeWinnings,
-    randomisePoolArray
+    randomisePoolArray,
+    getRandomItems
 };

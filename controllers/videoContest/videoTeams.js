@@ -9,9 +9,15 @@ const createVideoTeam = async(req, res) => {
     contest_id = parseInt(contest_id);
     const { user_id_mongo } = req.headers.user;
     const contest_expired = await pool.query(
-        `SELECT is_expired, participation_fee, event_start_time FROM video_contests where id=$1 `,
+        `SELECT is_expired, participation_fee, event_start_time, max_participants FROM video_contests where id=$1 `,
         [contest_id]
     );
+    const total_current_participants = await pool.query(`
+    SELECT count(*) total_participants FROM video_teams WHERE video_contest_id = $1;
+    `, [contest_id])
+    if(total_current_participants.rows[0].total_participants >= contest_expired.rows[0].max_participants){
+        return res.status(400).json({success: false, message: "All participations full"})
+    } 
     if (contest_expired.rows[0]["is_expired"]) {
         return res.status(400).send("The event has expired");
     }

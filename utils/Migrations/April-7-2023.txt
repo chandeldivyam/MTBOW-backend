@@ -1,0 +1,15 @@
+Tech Doc:
+    - We need to add prize pool while creating the contest, Also we need to add the cap of total_participants_allowed
+    - When an event is expired, we distribute winnings according to preset notion and not randomly
+    - We need to stop people from participating/creating a team when total_participants_allowed has reached
+    - FE changes to calculate prizepool manually only if prizepool is not available
+    - We need to create bots on production as well
+    - Bot creation of events API endpoint
+
+DB Queries:
+    ALTER TABLE video_contests
+    ADD COLUMN prize_pool INT,
+    ADD COLUMN max_participants INT;
+
+    UPDATE video_contests SET prize_pool = 300, max_participants = 100 WHERE id > 0
+//Also, add the default value of 300 to prize_pool and 100 = max_participants for current contests
