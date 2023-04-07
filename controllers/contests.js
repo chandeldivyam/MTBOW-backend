@@ -8,10 +8,11 @@ const createContest = async (req, res) => {
         event_start_time,
         event_end_time,
         participation_fee,
+        prize_pool
     } = req.body;
     const newContest = await pool.query(
         `
-        INSERT INTO contests (name,event_start_time,event_end_time,is_expired, image_url,all_creators, participation_fee) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+        INSERT INTO contests (name,event_start_time,event_end_time,is_expired, image_url,all_creators, participation_fee, prize_pool) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
     `,
         [
             contest_name,
@@ -21,6 +22,7 @@ const createContest = async (req, res) => {
             image_url,
             browser_ids,
             participation_fee,
+            prize_pool
         ]
     );
     let query = browser_ids.map((item) => {
@@ -88,7 +90,6 @@ const getContestInfo = async (req, res) => {
 	participants: participants.rows[0]["total_teams"]
 	});
 };
-
 const expireEvent = async (req, res) => {
     const contest_id = parseInt(req.params.id);
     const contest_expired = await pool.query(

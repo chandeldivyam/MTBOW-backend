@@ -102,7 +102,9 @@ CREATE TABLE video_contests(
     participation_fee INT,
     is_expired BOOLEAN,
     image_url VARCHAR(255),
-    all_video_ids varchar(255) ARRAY
+    all_video_ids varchar(255) ARRAY,
+    prize_pool INT,
+    max_participants INT
 );
 
 CREATE TABLE video_points(

@@ -12,11 +12,13 @@ const createVideoContest = async (req, res) => {
             event_start_time,
             event_end_time,
             participation_fee,
+            prize_pool,
+            max_participants
         } = req.body;
     
         const newVideoContest = await pool.query(`
-            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
-        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee,])
+            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee, prize_pool, max_participants) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee, prize_pool, max_participants])
     
         const contest_id = Number(newVideoContest.rows[0].id);
     
@@ -64,7 +66,7 @@ const getExpiredVideoContests = async (req, res) => {
 const getLiveVideoContests = async (req, res) => {
     try {
         const liveVideoEvents = await pool.query(`
-            SELECT id, name, image_url, event_start_time, participation_fee from video_contests where is_expired is false
+            SELECT id, name, image_url, event_start_time, participation_fee, prize_pool, max_participants from video_contests where is_expired is false
         `)
         const previous_winner = await pool.query(`
         select ui.name,reward from video_teams vt left join user_info ui on ui.id = vt.user_id 
@@ -84,7 +86,7 @@ const getVideoContestInfo = async (req, res) => {
     const event_id = parseInt(req.params.id);
     const contest_details = await pool.query(`
         with info_table as (
-            SELECT name, image_url, unnest(all_video_ids) as video_id, event_start_time, event_end_time, is_expired, participation_fee FROM video_contests WHERE id = $1
+            SELECT name, image_url, unnest(all_video_ids) as video_id, event_start_time, event_end_time, is_expired, participation_fee, prize_pool, max_participants FROM video_contests WHERE id = $1
         )
         SELECT info_table.*, video_points.* from info_table
         left join video_points on video_points.video_id = info_table.video_id
@@ -107,8 +109,8 @@ const getVideoContestInfo = async (req, res) => {
 const expireVideoContest = async (req, res) => {
     const contest_id = parseInt(req.params.id);
     const contest_expired = await pool.query(
-        `SELECT is_expired, participation_fee FROM video_contests where id=$1 `,
-        [contest_id]
+        `SELECT is_expired, participation_fee, prize_pool, max_participants FROM video_contests where id=$1`,
+        [Number(contest_id)]
     );
     if (contest_expired.rows[0]["is_expired"]) {
         return res.status(400).send("The event has expired");
@@ -127,7 +129,7 @@ const expireVideoContest = async (req, res) => {
         rank2: [],
         top50_percentile: [],
     };
-    let prize_pool = parseInt(leaderboard.rows.length) * parseInt(contest_expired.rows[0]["participation_fee"]);
+    let prize_pool = parseInt(contest_expired.rows[0]["prize_pool"]);
     if( parseInt(contest_expired.rows[0]["participation_fee"]) === 0){
         prize_pool = 300;
     }
@@ -184,21 +186,44 @@ const expireVideoContest = async (req, res) => {
         });
     }
     let prizePoolArray = []
-    for(let i = 0; i <= parseInt(total_participants/2); i++){
+    for(let i = 0; i <= Number(contest_expired.rows[0]["max_participants"])/2; i++){
         if(i===0){
-            prizePoolArray.push(parseInt(prize_pool * 0.4))
+            prizePoolArray.push(parseInt(prize_pool * 0.3))
             continue
         }
         if(i===1){
-            prizePoolArray.push(parseInt(prize_pool * 0.2))
+            prizePoolArray.push(parseInt(prize_pool * 0.175))
             continue
         }
-        if(i > 1 && i < Math.floor(total_participants/2)){
-            const last_amount = parseInt((prize_pool * 0.4) / Math.floor(total_participants/2 - 2))
-            prizePoolArray.push(last_amount)
+        if(i===2){
+            prizePoolArray.push(parseInt(prize_pool * 0.1))
+            continue
+        }
+        if(i===3 || i===4){
+            prizePoolArray.push(parseInt(prize_pool * 0.05))
+            continue
+        }
+        if(i > 4 && i <= 9){
+            prizePoolArray.push(parseInt(prize_pool * 0.025))
+            continue
+        }
+        if(i > 9 && i <= 19){
+            prizePoolArray.push(parseInt(prize_pool * 0.015))
+            continue
+        }
+        if(i > 19 && i <= 29){
+            prizePoolArray.push(parseInt(prize_pool * 0.010))
+            continue
+        }
+        if(i > 29 && i <= 49){
+            prizePoolArray.push(parseInt(prize_pool * 0.005))
+            continue
         }
     }
     //create an array of winnings which needs to be distributed
+    if(leaderboard.rows.length < prizePoolArray.length){
+        prizePoolArray = prizePoolArray.slice(0,leaderboard.rows.length)
+    }
     let winningsArray 
     winningsArray = distributeWinnings(leaderboard.rows, prizePoolArray)
 
@@ -231,7 +256,9 @@ const createAutomatedVideoContest = async (req, res) => {
             event_start_time,
             event_end_time,
             participation_fee,
-            genre
+            genre,
+            prize_pool,
+            max_participants
         } = req.body;
         if(genre){
             var video_ids = await generateVideoDataGenre(genre)
@@ -241,8 +268,8 @@ const createAutomatedVideoContest = async (req, res) => {
             var video_ids = await generateVideoData()
         }
         const newVideoContest = await pool.query(`
-            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
-        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee,])
+            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee, prize_pool, max_participants) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee, prize_pool, max_participants])
     
         const contest_id = Number(newVideoContest.rows[0].id);
     
