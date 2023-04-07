@@ -26,10 +26,10 @@ const createVideoContest = async (req, res) => {
         const video_data = await videoData(video_ids)
 
         let query = video_ids.map((item) => {
-            return `('${item}', ${contest_id}, '${realEscapeString(video_data[item].channel_title)}', '${realEscapeString(video_data[item].video_title)}', '${video_data[item].video_thumbnail}', '${video_data[item].channel_thumbnail}',0)`;
+            return `('${item}', ${contest_id}, '${realEscapeString(video_data[item].channel_title)}', '${realEscapeString(video_data[item].video_title)}', '${video_data[item].video_thumbnail}', '${video_data[item].channel_thumbnail}',0, '${video_data[item].video_published_at}')`;
         });
         const points = pool.query(
-            `INSERT INTO video_points (video_id, contest_id, channel_title, video_title, video_thumbnail, channel_thumbnail, score) VALUES ${query}`
+            `INSERT INTO video_points (video_id, contest_id, channel_title, video_title, video_thumbnail, channel_thumbnail, score, video_published_at) VALUES ${query}`
         );
         res.status(200).json({contest_name})
     } catch (error) {
@@ -88,8 +88,12 @@ const getVideoContestInfo = async (req, res) => {
         with info_table as (
             SELECT name, image_url, unnest(all_video_ids) as video_id, event_start_time, event_end_time, is_expired, participation_fee, prize_pool, max_participants FROM video_contests WHERE id = $1
         )
-        SELECT info_table.*, video_points.* from info_table
+        , stats_table as (
+            SELECT DISTINCT ON (video_id) video_id, video_views, video_likes, video_comments FROM video_stats WHERE video_id in (SELECT unnest(all_video_ids) FROM video_contests WHERE id = $1) ORDER BY video_id, updated_at DESC
+        )
+        SELECT info_table.*, video_points.*, stats_table.* from info_table
         left join video_points on video_points.video_id = info_table.video_id
+        left join stats_table on info_table.video_id = stats_table.video_id
         where video_points.contest_id = $1
     `, [event_id])
 
@@ -277,10 +281,10 @@ const createAutomatedVideoContest = async (req, res) => {
         const video_data = await videoData(video_ids)
 
         let query = video_ids.map((item) => {
-            return `('${item}', ${contest_id}, '${realEscapeString(video_data[item].channel_title)}', '${realEscapeString(video_data[item].video_title)}', '${video_data[item].video_thumbnail}', '${video_data[item].channel_thumbnail}',0)`;
+            return `('${item}', ${contest_id}, '${realEscapeString(video_data[item].channel_title)}', '${realEscapeString(video_data[item].video_title)}', '${video_data[item].video_thumbnail}', '${video_data[item].channel_thumbnail}',0, '${video_data[item].video_published_at}')`;
         });
         const points = pool.query(
-            `INSERT INTO video_points (video_id, contest_id, channel_title, video_title, video_thumbnail, channel_thumbnail, score) VALUES ${query}`
+            `INSERT INTO video_points (video_id, contest_id, channel_title, video_title, video_thumbnail, channel_thumbnail, score, video_published_at) VALUES ${query}`
         );
         res.status(200).json({success: true, video_data})
     } catch (error) {

@@ -5,7 +5,7 @@ const pool = require("../../db/postgreDb");
 cron.schedule("*/30 * * * * *", async () => {
     console.log("running a task every thirty seconds!!!");
     const video_ids_data = await pool.query(`
-        select distinct unnest(all_video_ids) as video_id from video_contests where is_expired = false and NOW() > event_start_time - interval '2 minutes' and NOW() < event_end_time; 
+        select distinct unnest(all_video_ids) as video_id from video_contests where is_expired = false and NOW() < event_end_time; 
     `)
     const video_ids = [];
     for (let video_id_obj of video_ids_data.rows) {

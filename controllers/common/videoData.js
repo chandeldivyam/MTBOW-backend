@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { google } = require("googleapis");
 const distance = require('distance');
-const { initialScoreCalculator, sleep, shuffle } = require("./helper")
+const { initialScoreCalculator, sleep, shuffle, convertToIST } = require("./helper")
 const lodash = require("lodash");
 const pool = require("../../db/postgreDb");
 const kmeans = require('node-kmeans');
@@ -43,11 +43,13 @@ const videoData = async(video_ids) => {
             "id": [item.snippet.channelId]
         })
         const temp_channel_thubmnail = channel_data_response.data.items[0].snippet.thumbnails.high.url
+        const video_published_at = item.snippet.publishedAt ? item.snippet.publishedAt : ''
         responseObject[temp_id] = {
             channel_title: temp_creator_title,
             video_title: temp_video_title,
             video_thumbnail: temp_video_thubmnail,
-            channel_thumbnail: temp_channel_thubmnail
+            channel_thumbnail: temp_channel_thubmnail,
+            video_published_at: convertToIST(video_published_at)
         }
     }
     // console.log(responseObject)

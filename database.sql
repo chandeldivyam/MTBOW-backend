@@ -117,7 +117,8 @@ CREATE TABLE video_points(
     video_thumbnail VARCHAR(255),
     channel_thumbnail VARCHAR(255),
     score INT,
-    extra_details JSONB DEFAULT '{"like_points": 0, "view_points": 0, "comment_points": 0}'
+    extra_details JSONB DEFAULT '{"like_points": 0, "view_points": 0, "comment_points": 0}',
+    video_published_at TIMESTAMPTZ
 );
 
 CREATE TABLE video_teams(
