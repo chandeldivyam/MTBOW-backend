@@ -127,6 +127,17 @@ function getRandomItems(arr, numItems) {
     return Array.from(selectedItems);
   }
 
+function convertToIST(utcString) {
+    const utcDate = new Date(utcString);
+    const istOffset = 5 * 60 + 30; // IST offset in minutes (5 hours and 30 minutes)
+    const istDate = new Date(utcDate.getTime() + istOffset * 60000);
+
+    const formattedDate = istDate.toISOString().split('.')[0].replace('T', ' ');
+    const istString = formattedDate + '+05:30';
+  
+    return istString;
+}
+
 module.exports = {
     encodeRequest,
     signRequest,
@@ -137,5 +148,6 @@ module.exports = {
     shuffle,
     distributeWinnings,
     randomisePoolArray,
-    getRandomItems
+    getRandomItems,
+    convertToIST
 };
