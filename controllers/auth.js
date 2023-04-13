@@ -156,15 +156,23 @@ const verifyOTPSignup = async (req, res, next) => {
             if(referral_unique.rowCount === 0) break
         }
         if(referral_code_used){
-            const newUser = await pool.query(
-                `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code_used, referral_code) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [user.name, user.phone, 0, 0, 0, referral_code_used.toUpperCase(), referral_code]
-            );
+            if(referral_code_used === 'MTBOW30'){
+                const newUser = await pool.query(
+                    `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code_used, referral_code) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    [user.name, user.phone, 30, 0, 0, referral_code_used.toUpperCase(), referral_code]
+                );
+            }
+            else{
+                const newUser = await pool.query(
+                    `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code_used, referral_code) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    [user.name, user.phone, 20, 0, 0, referral_code_used.toUpperCase(), referral_code]
+                );
+            }
         }
         else{
             const newUser = await pool.query(
                 `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code) VALUES ($1, $2, $3, $4, $5, $6)`,
-                [user.name, user.phone, 0, 0, 0, referral_code]
+                [user.name, user.phone, 20, 0, 0, referral_code]
             );
         }
         const user_id_pg = await pool.query(`SELECT MAX(id) FROM user_info where phone=$1`, [user.phone]);
