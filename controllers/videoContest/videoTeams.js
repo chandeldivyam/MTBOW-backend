@@ -81,7 +81,7 @@ const createVideoTeam = async(req, res) => {
     );
 
     const referrer_user = await pool.query(`
-            UPDATE user_info SET winnings = (winnings + 5) WHERE referral_code in (select ui.referral_code_used
+            UPDATE user_info SET promotional = (promotional + 5) WHERE referral_code in (select ui.referral_code_used
                 from user_info ui
                 left join verification on verification.user_id = ui.id
                 where ui.id = $1 and verification.pan_verification_status = 'SUCCESS'

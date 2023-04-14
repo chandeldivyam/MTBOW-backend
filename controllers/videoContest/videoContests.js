@@ -45,7 +45,8 @@ const getExpiredVideoContests = async (req, res) => {
             SELECT vc.id, vc.name, vc.image_url FROM video_contests vc 
             where vc.is_expired is true 
             and id not in (select distinct video_contest_id from video_teams where user_id = $1)
-            order by vc.id desc`,
+            order by vc.id desc
+            LIMIT 10`,
             [user_id_mongo]
         );
         const myExpiredContests = await pool.query(
@@ -56,7 +57,15 @@ const getExpiredVideoContests = async (req, res) => {
             order by vc.id desc`,
             [user_id_mongo]
         );
-        res.status(200).json({allExpiredContests: allExpiredContests.rows, myExpiredContests: myExpiredContests.rows});
+        const myLiveContests = await pool.query(
+            `
+            SELECT vc.id, vc.name, vc.image_url FROM video_contests vc 
+            where vc.is_expired is false 
+            and id in (select distinct video_contest_id from video_teams where user_id = $1)
+            order by vc.id desc`,
+            [user_id_mongo]
+        );
+        res.status(200).json({allExpiredContests: allExpiredContests.rows, myExpiredContests: myExpiredContests.rows, myLiveContests: myLiveContests.rows});
     } catch (error) {
         console.log(error)
         res.status(500).json({success: false, message: "Some error occoured while fetching expired video events"})
