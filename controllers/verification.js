@@ -8,6 +8,7 @@ const {
 } = require("./common/helper");
 const fetch = require("node-fetch");
 const fsm = require('fuzzy-string-matching');
+const { fast2smsSend } = require("../utils/otp");
 
 const validateVpa = async(req, res) => {
     try {
@@ -92,7 +93,6 @@ const validatePan = async(req, res) => {
         if(!pan || !name) {
             return res.status(400).json({success: false, reason: "missing required information"})
         }
-
         //Checking if already pan validation successful
         const verification_db_entry = await pool.query(`SELECT * FROM verification where user_id = $1`, [user_id_mongo])
         if(verification_db_entry.rows.length === 1 && verification_db_entry.rows[0].pan_verification_status === 'SUCCESS'){
@@ -104,6 +104,7 @@ const validatePan = async(req, res) => {
         //Here we need to automate the pan validation process
 
         //if no entry exists, create an entry
+        await fast2smsSend({ message: `PAN VERIFICATION ${user_id_mongo}`, contactNumber: "9575555584" }, null)
         if(verification_db_entry.rows.length === 0){
             await pool.query(`
                     INSERT INTO verification (updated_at, user_id, name_pan, pan_card_number, pan_verification_status) VALUES (NOW(), $1, $2, $3, 'PENDING');
