@@ -114,7 +114,7 @@ const generateVideoData = async() => {
             if(!item.id || !item.snippet.channelTitle || !item.snippet.title || !item.snippet.thumbnails.standard.url || !item.snippet.publishedAt) continue
             //skipping the channel thumbnail check because it will call the youtube api for no reason
             if(!item.statistics.commentCount || !item.statistics.viewCount || !item.statistics.likeCount) continue
-
+            if(Number(item.statistics.viewCount) > 7000000 || Number(item.statistics.viewCount) < 1000000) continue
             temp_obj_videos[item.id] = {
                 video_id: item.id,
                 channelTitle: item.snippet.channelTitle,
@@ -143,6 +143,7 @@ const generateVideoData = async() => {
                 if(!item.id || !item.snippet.channelTitle || !item.snippet.title || !item.snippet.thumbnails.standard || !item.snippet.thumbnails.standard.url || !item.snippet.publishedAt) continue
                 //skipping the channel thumbnail check because it will call the youtube api for no reason
                 if(!item.statistics.commentCount || !item.statistics.viewCount || !item.statistics.likeCount) continue
+                if(Number(item.statistics.viewCount) > 7000000 || Number(item.statistics.viewCount) < 1000000) continue
                 temp_obj_videos[item.id] = {
                     video_id: item.id,
                     channelTitle: item.snippet.channelTitle,
@@ -263,6 +264,7 @@ const generateVideoDataGenre = async(genre) => {
             if(!item.id || !item.snippet.channelTitle || !item.snippet.title || !item.snippet.thumbnails.standard || !item.snippet.thumbnails.standard.url || !item.snippet.publishedAt) continue
             //skipping the channel thumbnail check because it will call the youtube api for no reason
             if(!item.statistics.commentCount || !item.statistics.viewCount || !item.statistics.likeCount) continue
+            if(Number(item.statistics.viewCount) > 7000000 || Number(item.statistics.viewCount) < 1000000) continue
 
             temp_obj_videos[item.id] = {
                 video_id: item.id,
@@ -293,6 +295,7 @@ const generateVideoDataGenre = async(genre) => {
                 if(!item.id || !item.snippet.channelTitle || !item.snippet.title || !item.snippet.thumbnails.standard || !item.snippet.thumbnails.standard.url || !item.snippet.publishedAt) continue
                 //skipping the channel thumbnail check because it will call the youtube api for no reason
                 if(!item.statistics.commentCount || !item.statistics.viewCount || !item.statistics.likeCount) continue
+                if(Number(item.statistics.viewCount) > 7000000 || Number(item.statistics.viewCount) < 1000000) continue
                 temp_obj_videos[item.id] = {
                     video_id: item.id,
                     channelTitle: item.snippet.channelTitle,
