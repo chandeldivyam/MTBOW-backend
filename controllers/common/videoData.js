@@ -175,7 +175,7 @@ const generateVideoData = async() => {
                 if(!item.statistics.commentCount || !item.statistics.viewCount || !item.statistics.likeCount){
                     continue
                 }
-                final_score = Math.floor((Number(item.statistics.viewCount) - temp_obj_videos[item.id].video_view_initial)/10) 
+                final_score = Math.floor((Number(item.statistics.viewCount) - temp_obj_videos[item.id].video_view_initial)/50) 
                             + Math.floor((Number(item.statistics.likeCount) - temp_obj_videos[item.id].video_likes_initial)) 
                             + Math.floor((Number(item.statistics.commentCount) - temp_obj_videos[item.id].video_comments_initial)*2) 
                 temp_obj_videos[item.id] = {
@@ -327,7 +327,7 @@ const generateVideoDataGenre = async(genre) => {
                 if(!item.statistics.commentCount || !item.statistics.viewCount || !item.statistics.likeCount){
                     continue
                 }
-                final_score = Math.floor((Number(item.statistics.viewCount) - temp_obj_videos[item.id].video_view_initial)/10) 
+                final_score = Math.floor((Number(item.statistics.viewCount) - temp_obj_videos[item.id].video_view_initial)/50) 
                             + Math.floor((Number(item.statistics.likeCount) - temp_obj_videos[item.id].video_likes_initial)) 
                             + Math.floor((Number(item.statistics.commentCount) - temp_obj_videos[item.id].video_comments_initial)*2) 
                 temp_obj_videos[item.id] = {

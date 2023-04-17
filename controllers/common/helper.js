@@ -45,7 +45,7 @@ function realEscapeString (str) {
 
 function initialScoreCalculator (release_time, views, comments, likes){
     const time_taken = Math.floor(((new Date() - new Date(release_time))/1000/60) << 0);
-    return Math.floor((Math.floor(Number(views)/10) + Number(likes) + (2*Number(comments))) / time_taken);
+    return Math.floor((Math.floor(Number(views)/50) + Number(likes) + (2*Number(comments))) / time_taken);
 }
 
 const sleep = async function (ms) {

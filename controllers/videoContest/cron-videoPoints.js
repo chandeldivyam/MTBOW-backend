@@ -39,7 +39,7 @@ cron.schedule("*/15 * * * * *", async () => {
             const total_points = {};
             if (initial_data.length === final_data.length) {
                 Object.keys(final_data).forEach((key) => {
-                    const view_points = Math.floor((Number(final_data[key].video_views) - Number(initial_data[key].video_views)) / 5);
+                    const view_points = Math.floor((Number(final_data[key].video_views) - Number(initial_data[key].video_views)) / 50);
                     const comment_points = 2 * (Number(final_data[key].video_comments) - Number(initial_data[key].video_comments));
                     const like_points = Number(final_data[key].video_likes) - Number(initial_data[key].video_likes);
                     total_points[key] = {like_points, view_points, comment_points}; 
