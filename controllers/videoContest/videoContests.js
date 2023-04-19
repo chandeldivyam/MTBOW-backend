@@ -201,19 +201,19 @@ const expireVideoContest = async (req, res) => {
     let prizePoolArray = []
     for(let i = 0; i <= Number(contest_expired.rows[0]["max_participants"])/2; i++){
         if(i===0){
-            prizePoolArray.push(parseInt(prize_pool * 0.3))
+            prizePoolArray.push(parseInt(prize_pool * 0.25))
             continue
         }
         if(i===1){
-            prizePoolArray.push(parseInt(prize_pool * 0.175))
+            prizePoolArray.push(parseInt(prize_pool * 0.125))
             continue
         }
         if(i===2){
-            prizePoolArray.push(parseInt(prize_pool * 0.1))
+            prizePoolArray.push(parseInt(prize_pool * 0.07))
             continue
         }
         if(i===3 || i===4){
-            prizePoolArray.push(parseInt(prize_pool * 0.05))
+            prizePoolArray.push(parseInt(prize_pool * 0.04))
             continue
         }
         if(i > 4 && i <= 9){
