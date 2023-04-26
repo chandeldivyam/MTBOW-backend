@@ -1,4 +1,6 @@
 const fast2sms = require("fast-two-sms");
+var axios = require('axios');
+var qs = require('qs');
 
 const generateOTP = (otp_length) => {
     // Declare a digits variable
@@ -12,11 +14,29 @@ const generateOTP = (otp_length) => {
 };
 const fast2smsSend = async ({ message, contactNumber }, next) => {
     try {
-        const res = await fast2sms.sendMessage({
-            authorization: process.env.FAST2SMS_API_KEY,
-            message,
-            numbers: [contactNumber],
-        });
+        var data = qs.stringify({
+            'message': message,
+            'language': 'english',
+            'route': 'q',
+            'numbers': `${contactNumber}` 
+          });
+          var config = {
+            method: 'post',
+            url: 'https://www.fast2sms.com/dev/bulkV2',
+            headers: { 
+              'authorization': process.env.FAST2SMS_API_KEY, 
+              'Content-Type': 'application/x-www-form-urlencoded', 
+            },
+            data : data
+          };
+          
+          axios(config)
+          .then(function (response) {
+            console.log(JSON.stringify(response.data));
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
     } catch (error) {
         next(error);
     }
