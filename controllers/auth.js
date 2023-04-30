@@ -42,7 +42,7 @@ const registerUser = async (req, res, next) => {
             await phoneExist.save();
             await fast2smsSend(
                 {
-                    message: `OTP for MTBOW is ${otp}`,
+                    message: `${otp}`,
                     contactNumber: phone,
                 },
                 next
@@ -86,7 +86,7 @@ const registerUser = async (req, res, next) => {
         // send otp to phone number
         await fast2smsSend(
             {
-                message: `OTP for MTBOW is ${otp}`,
+                message: `${otp}`,
                 contactNumber: user.phone,
             },
             next
@@ -124,7 +124,7 @@ const loginUser = async (req, res, next) => {
         // send otp to phone number
         await fast2smsSend(
             {
-                message: `OTP for MTBOW is ${otp}`,
+                message: `${otp}`,
                 contactNumber: user.phone,
             },
             next

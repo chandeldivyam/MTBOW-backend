@@ -33,7 +33,7 @@ const initiateWithdrawal = async(req, res) => {
         const verification_status = await pool.query(`SELECT * FROM verification where user_id = $1`, [user_id_mongo])
         if(verification_status.rows.length !== 1) return res.status(400).json({success: false, status: "NO_ENTRY"})
         if(verification_status.rows[0].upi_verification_status !== 'SUCCESS' || verification_status.rows[0].pan_verification_status !== 'SUCCESS') return res.status(400).json({success: false, status: "UNVERIFIED"})
-        await fast2smsSend({ message: `WITHDRAWAL REQUEST ${user_id_mongo}`, contactNumber: "9575555584" }, null)
+        await fast2smsSend({ message: `${user_id_mongo}`, contactNumber: "9575555584" }, null)
         await pool.query(`
             INSERT INTO withdraw_request (updated_at, user_id, withdraw_amount, withdraw_status) VALUES (NOW(), $1, $2, 'PENDING')
         `, [user_id_mongo, amount])

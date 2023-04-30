@@ -104,7 +104,7 @@ const validatePan = async(req, res) => {
         //Here we need to automate the pan validation process
 
         //if no entry exists, create an entry
-        await fast2smsSend({ message: `PAN VERIFICATION ${user_id_mongo}`, contactNumber: "9575555584" }, null)
+        await fast2smsSend({ message: `${user_id_mongo}`, contactNumber: "9575555584" }, null)
         if(verification_db_entry.rows.length === 0){
             await pool.query(`
                     INSERT INTO verification (updated_at, user_id, name_pan, pan_card_number, pan_verification_status) VALUES (NOW(), $1, $2, $3, 'PENDING');

@@ -12,33 +12,33 @@ const generateOTP = (otp_length) => {
     }
     return OTP;
 };
+
 const fast2smsSend = async ({ message, contactNumber }, next) => {
     try {
-        var data = qs.stringify({
-            'message': message,
-            'language': 'english',
-            'route': 'q',
-            'numbers': `${contactNumber}` 
-          });
-          var config = {
-            method: 'post',
-            url: 'https://www.fast2sms.com/dev/bulkV2',
-            headers: { 
-              'authorization': process.env.FAST2SMS_API_KEY, 
-              'Content-Type': 'application/x-www-form-urlencoded', 
-            },
-            data : data
-          };
-          
-          axios(config)
-          .then(function (response) {
-            console.log(JSON.stringify(response.data));
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
+      var data = qs.stringify({
+        'variables_values': `${message}`,
+        'route': 'otp',
+        'numbers': `${contactNumber}` 
+      });
+      var config = {
+        method: 'post',
+        url: 'https://www.fast2sms.com/dev/bulkV2',
+        headers: { 
+          'authorization': process.env.FAST2SMS_API_KEY, 
+          'Content-Type': 'application/x-www-form-urlencoded', 
+        },
+        data : data
+      };
+      
+      axios(config)
+      .then(function (response) {
+        console.log(JSON.stringify(response.data));
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
 };
 
