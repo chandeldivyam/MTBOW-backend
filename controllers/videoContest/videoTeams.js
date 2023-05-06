@@ -81,7 +81,7 @@ const createVideoTeam = async(req, res) => {
     );
 
     const referrer_user = await pool.query(`
-            UPDATE user_info SET promotional = (promotional + 5) WHERE referral_code in (select ui.referral_code_used
+            UPDATE user_info SET promotional = (promotional + 1) WHERE referral_code in (select ui.referral_code_used
                 from user_info ui
                 left join verification on verification.user_id = ui.id
                 where ui.id = $1 and verification.pan_verification_status = 'SUCCESS'
@@ -89,7 +89,7 @@ const createVideoTeam = async(req, res) => {
         `, [user_id_mongo])
         if(referrer_user.rows.length === 1){
             await pool.query(`
-                INSERT INTO referral_ledgers (created_at, referrer_user_id, referee_user_id, amount, reason, video_contest_id) VALUES (NOW(), $1, $2, 5, 'TEAM_CREATION', $3)
+                INSERT INTO referral_ledgers (created_at, referrer_user_id, referee_user_id, amount, reason, video_contest_id) VALUES (NOW(), $1, $2, 1, 'TEAM_CREATION', $3)
             `, [Number(referrer_user.rows[0].id), user_id_mongo, contest_id])
         }
     res.status(200).json(newTeam);
