@@ -95,7 +95,7 @@ const validatePan = async(req, res) => {
         }
         const panExists = await pool.query(`SELECT user_id, pan_card_number FROM verification WHERE pan_card_number = $1 AND user_id != $2`, [pan, user_id_mongo]);
         if (panExists.rows.length > 0) {
-            return res.status(400).json({success: false, reason: "PAN number already exists for another user"});
+            return res.status(200).json({success: false, reason: "PAN number already exists for another user"});
         }
         //Checking if already pan validation successful
         const verification_db_entry = await pool.query(`SELECT * FROM verification where user_id = $1`, [user_id_mongo])
