@@ -155,32 +155,24 @@ const verifyOTPSignup = async (req, res, next) => {
             let referral_unique = await pool.query(`SELECT * FROM user_info where referral_code = $1`, [referral_code])
             if(referral_unique.rowCount === 0) break
         }
+        let referral_amount = 20;
         if(referral_code_used){
-            if(referral_code_used === 'MTBOW30'){
-                const newUser = await pool.query(
-                    `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code_used, referral_code) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                    [user.name, user.phone, 30, 0, 0, referral_code_used.toUpperCase(), referral_code]
-                );
-            }
-            else{
-                const newUser = await pool.query(
-                    `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code_used, referral_code) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                    [user.name, user.phone, 30, 0, 0, referral_code_used.toUpperCase(), referral_code]
-                );
-            }
+            referral_amount = 30;
         }
-        else{
-            const newUser = await pool.query(
-                `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code) VALUES ($1, $2, $3, $4, $5, $6)`,
-                [user.name, user.phone, 20, 0, 0, referral_code]
-            );
-        }
+        const newUser = await pool.query(
+            `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code_used, referral_code) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [user.name, user.phone, referral_amount, 0, 0, referral_code_used.toUpperCase(), referral_code]
+        );
+
         const user_id_pg = await pool.query(`SELECT MAX(id) FROM user_info where phone=$1`, [user.phone]);
 
         user.user_id_mongo = Number(user_id_pg.rows[0]["max"]);
         user.phoneOtp = "";
         await user.save();
-
+        await pool.query(
+            `INSERT INTO referral_ledgers (referrer_user_id, amount, reason) VALUES ($1, $2, $3)`
+            , [Number(user_id_pg.rows[0]["max"]), referral_amount, 'JOINING_BONUS']
+        )
         res.status(201).json({
             type: "success",
             message: "OTP verified successfully",
