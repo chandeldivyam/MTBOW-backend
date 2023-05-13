@@ -111,7 +111,7 @@ const generateVideoData = async() => {
             return
         }
         for(let item of video_response.data.items){
-            if(!item.id || !item.snippet.channelTitle || !item.snippet.title || !item.snippet.thumbnails.standard.url || !item.snippet.publishedAt) continue
+            if(!item.id || !item.snippet.channelTitle || !item.snippet.title || !item.snippet.thumbnails.standard || !item.snippet.thumbnails.standard.url || !item.snippet.publishedAt) continue
             //skipping the channel thumbnail check because it will call the youtube api for no reason
             if(!item.statistics.commentCount || !item.statistics.viewCount || !item.statistics.likeCount) continue
             if(Number(item.statistics.viewCount) > 7000000 || Number(item.statistics.viewCount) < 1000000) continue
