@@ -157,7 +157,7 @@ const verifyOTPSignup = async (req, res, next) => {
         }
         let referral_amount = 20;
         if(referral_code_used){
-            referral_amount = 30;
+            referral_amount = 20;
         }
         const newUser = await pool.query(
             `INSERT INTO user_info (name, phone, promotional, winnings, topup, referral_code_used, referral_code) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
