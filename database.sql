@@ -104,7 +104,8 @@ CREATE TABLE video_contests(
     image_url VARCHAR(255),
     all_video_ids varchar(255) ARRAY,
     prize_pool INT,
-    max_participants INT
+    max_participants INT,
+    prizepool_array JSONB 
 );
 
 CREATE TABLE video_points(

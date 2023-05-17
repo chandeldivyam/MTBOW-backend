@@ -1,5 +1,6 @@
 const { balanceCalculator } = require("../common/balanceCalculator");
 const pool = require("../../db/postgreDb");
+const { distributeWinnings } = require("../common/helper");
 
 const createVideoTeam = async(req, res) => {
     let { contest_id, video_ids } = req.body
@@ -138,7 +139,24 @@ const getVideoTeamScore = async(req, res) => {
             group by 1,2,3
             order by rank;
     `, [contest_id, contest_id]);
-
+    const contest_info = await pool.query(
+        `SELECT participation_fee, prize_pool, max_participants, prizepool_array FROM video_contests where id=$1`,
+        [Number(contest_id)]
+    );
+    let prizeDistribution = contest_info.rows[0]["prizepool_array"]
+    let prizePoolArray = [];
+    for (let item of prizeDistribution) {
+        let ranks = item.rank.split('-');
+        let startRank = parseInt(ranks[0]);
+        let endRank = ranks[1] ? parseInt(ranks[1]) : startRank;
+        let prizes = new Array(endRank - startRank + 1).fill(item.amount);
+        prizePoolArray = [...prizePoolArray, ...prizes];
+    }
+    if(leaderboard.rows.length < prizePoolArray.length){
+        prizePoolArray = prizePoolArray.slice(0,leaderboard.rows.length)
+    }
+    let winningsArray 
+    winningsArray = distributeWinnings(leaderboard.rows, prizePoolArray)
     const team_score = await pool.query(`
         with team_points as (select user_id,unnest(video_team) as video_id from video_teams where video_contest_id = $1 and user_id = $2)
         select team_points.video_id, video_points.score, video_points.extra_details from team_points
@@ -153,7 +171,7 @@ const getVideoTeamScore = async(req, res) => {
     for (let item of team_score.rows) {
         score_distribution[item.video_id] = {...item.extra_details}
     }
-    res.status(200).json({ leaderboard: leaderboard.rows, team_score_object, score_distribution });
+    res.status(200).json({ leaderboard: winningsArray, team_score_object, score_distribution });
 }
 
 const getVideoTeamScoreOther = async(req, res) => {

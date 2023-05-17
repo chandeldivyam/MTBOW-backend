@@ -13,12 +13,15 @@ const createVideoContest = async (req, res) => {
             event_end_time,
             participation_fee,
             prize_pool,
-            max_participants
+            max_participants,
+            prizepool_array
         } = req.body;
     
+        if(Number(participation_fee) > 0 && !prizepool_array) return res.status(400).json({success: false, message: "prizepool_array missing"})
+
         const newVideoContest = await pool.query(`
-            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee, prize_pool, max_participants) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
-        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee, prize_pool, max_participants])
+            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee, prize_pool, max_participants, prizepool_array) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
+        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee, prize_pool, max_participants, JSON.stringify(prizepool_array)])
     
         const contest_id = Number(newVideoContest.rows[0].id);
     
@@ -75,15 +78,9 @@ const getExpiredVideoContests = async (req, res) => {
 const getLiveVideoContests = async (req, res) => {
     try {
         const liveVideoEvents = await pool.query(`
-            SELECT id, name, image_url, event_start_time, participation_fee, prize_pool, max_participants from video_contests where is_expired is false
+            SELECT id, name, image_url, event_start_time, participation_fee, prize_pool, max_participants, prizepool_array from video_contests where is_expired is false
         `)
-        const previous_winner = await pool.query(`
-        select ui.name,reward from video_teams vt left join user_info ui on ui.id = vt.user_id 
-        where video_contest_id = (select max(id) from video_contests where is_expired is true) 
-        order by 2 desc 
-        limit 1;
-        `)
-        res.status(200).json({liveVideoContest: liveVideoEvents.rows, previousWinner: previous_winner.rows[0].name });
+        res.status(200).json({ liveVideoContest: liveVideoEvents.rows });
     } catch (error) {
         console.log(error) 
         res.status(500).json({success: false, message: "Some error occoured while fetching live video events"})
@@ -95,7 +92,7 @@ const getVideoContestInfo = async (req, res) => {
     const event_id = parseInt(req.params.id);
     const contest_details = await pool.query(`
         with info_table as (
-            SELECT name, image_url, unnest(all_video_ids) as video_id, event_start_time, event_end_time, is_expired, participation_fee, prize_pool, max_participants FROM video_contests WHERE id = $1
+            SELECT name, image_url, unnest(all_video_ids) as video_id, event_start_time, event_end_time, is_expired, participation_fee, prize_pool, max_participants, prizepool_array FROM video_contests WHERE id = $1
         )
         , stats_table as (
             SELECT DISTINCT ON (video_id) video_id, video_views, video_likes, video_comments FROM video_stats WHERE video_id in (SELECT unnest(all_video_ids) FROM video_contests WHERE id = $1) ORDER BY video_id, updated_at DESC
@@ -122,7 +119,7 @@ const getVideoContestInfo = async (req, res) => {
 const expireVideoContest = async (req, res) => {
     const contest_id = parseInt(req.params.id);
     const contest_expired = await pool.query(
-        `SELECT is_expired, participation_fee, prize_pool, max_participants FROM video_contests where id=$1`,
+        `SELECT is_expired, participation_fee, prize_pool, max_participants, prizepool_array FROM video_contests where id=$1`,
         [Number(contest_id)]
     );
     if (contest_expired.rows[0]["is_expired"]) {
@@ -198,40 +195,15 @@ const expireVideoContest = async (req, res) => {
             success: true,
         });
     }
-    let prizePoolArray = []
-    for(let i = 0; i <= Number(contest_expired.rows[0]["max_participants"])/2; i++){
-        if(i===0){
-            prizePoolArray.push(parseInt(prize_pool * 0.25))
-            continue
-        }
-        if(i===1){
-            prizePoolArray.push(parseInt(prize_pool * 0.125))
-            continue
-        }
-        if(i===2){
-            prizePoolArray.push(parseInt(prize_pool * 0.07))
-            continue
-        }
-        if(i===3 || i===4){
-            prizePoolArray.push(parseInt(prize_pool * 0.04))
-            continue
-        }
-        if(i > 4 && i <= 9){
-            prizePoolArray.push(parseInt(prize_pool * 0.025))
-            continue
-        }
-        if(i > 9 && i <= 19){
-            prizePoolArray.push(parseInt(prize_pool * 0.015))
-            continue
-        }
-        if(i > 19 && i <= 29){
-            prizePoolArray.push(parseInt(prize_pool * 0.010))
-            continue
-        }
-        if(i > 29 && i <= 49){
-            prizePoolArray.push(parseInt(prize_pool * 0.005))
-            continue
-        }
+    if(!contest_expired.rows[0]["prizepool_array"]) return res.status(500).json({success: false, error: "Prizepool array not found"})
+    let prizeDistribution = contest_expired.rows[0]["prizepool_array"]
+    let prizePoolArray = [];
+    for (let item of prizeDistribution) {
+        let ranks = item.rank.split('-');
+        let startRank = parseInt(ranks[0]);
+        let endRank = ranks[1] ? parseInt(ranks[1]) : startRank;
+        let prizes = new Array(endRank - startRank + 1).fill(item.amount);
+        prizePoolArray = [...prizePoolArray, ...prizes];
     }
     //create an array of winnings which needs to be distributed
     if(leaderboard.rows.length < prizePoolArray.length){
@@ -240,10 +212,8 @@ const expireVideoContest = async (req, res) => {
     let winningsArray 
     winningsArray = distributeWinnings(leaderboard.rows, prizePoolArray)
 
-
     //use the function distributeWinnings to distribute the winnings.
     winningsArray = winningsArray.filter(entry => entry.prize !== undefined)
-
     for (const winnings of winningsArray){
         const { user_id, prize } = winnings;
         await pool.query(`
@@ -271,18 +241,22 @@ const createAutomatedVideoContest = async (req, res) => {
             participation_fee,
             genre,
             prize_pool,
-            max_participants
+            max_participants,
+            prizepool_array
         } = req.body;
         if(genre){
             var video_ids = await generateVideoDataGenre(genre)
             if(typeof video_ids === "string") return res.status(400).json({success: false, message: video_ids})
+            if(video_ids.length < 21) return res.status(400).json({success: false, message: "could not find 21 videos"})
         }
         else{
             var video_ids = await generateVideoData()
         }
+        if(Number(participation_fee) > 0 && !prizepool_array) return res.status(400).json({success: false, message: "prizepool_array missing"})
+        const temp_prizepool_array = JSON.stringify(prizepool_array)
         const newVideoContest = await pool.query(`
-            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee, prize_pool, max_participants) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
-        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee, prize_pool, max_participants])
+            INSERT INTO video_contests (name, event_start_time, event_end_time, is_expired, image_url, all_video_ids, participation_fee, prize_pool, max_participants, prizepool_array) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
+        `, [contest_name, event_start_time, event_end_time, false, image_url, video_ids, participation_fee, prize_pool, max_participants, temp_prizepool_array])
     
         const contest_id = Number(newVideoContest.rows[0].id);
     
