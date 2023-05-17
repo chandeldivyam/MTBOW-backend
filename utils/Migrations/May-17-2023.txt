@@ -1,0 +1,15 @@
+ALTER TABLE video_contests
+ADD COLUMN prizepool_array JSONB;
+
+UPDATE video_contests
+SET prizepool_array = '[{"rank": "1", "amount": 250},
+                       {"rank": "2", "amount": 125},
+                       {"rank": "3", "amount": 70},
+                       {"rank": "4-5", "amount": 40},
+                       {"rank": "6-10", "amount": 25},
+                       {"rank": "11-20", "amount": 15},
+                       {"rank": "21-30", "amount": 10},
+                       {"rank": "31-50", "amount": 5}]'
+WHERE prize_pool = 1000;
+
+Make changes in create contest as well

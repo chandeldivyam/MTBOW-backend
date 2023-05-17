@@ -162,15 +162,16 @@ const validatePanManual = async(req, res) => {
             return res.json({success: true})
         }
         else if(user_check_pending.rows[0].referral_code_used){
+            const referral_bonus = 10
             const referrer_user = await pool.query(
-                `UPDATE user_info SET promotional = (promotional + 15) where referral_code = $1 RETURNING id`
-            ,[user_check_pending.rows[0].referral_code_used])
+                `UPDATE user_info SET promotional = (promotional + $2) where referral_code = $1 RETURNING id`
+            ,[user_check_pending.rows[0].referral_code_used, referral_bonus])
             await pool.query(`
                 UPDATE verification SET pan_verification_status = 'SUCCESS' where user_id = $1
             `, [user_id])
             await pool.query(`
-                INSERT INTO referral_ledgers (created_at, referrer_user_id, referee_user_id, amount, reason) VALUES (NOW(), $1, $2, 15, 'KYC_VERIFICATION')
-            `, [Number(referrer_user.rows[0].id), user_id])
+                INSERT INTO referral_ledgers (created_at, referrer_user_id, referee_user_id, amount, reason) VALUES (NOW(), $1, $2, $3, 'KYC_VERIFICATION')
+            `, [Number(referrer_user.rows[0].id), user_id], referral_bonus)
             return res.json({success: true, referrer_user})
         }
     } catch (error) {
