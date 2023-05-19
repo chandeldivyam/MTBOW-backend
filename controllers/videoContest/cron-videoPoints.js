@@ -8,7 +8,7 @@ cron.schedule("*/15 * * * * *", async () => {
             `SELECT id, event_start_time, event_end_time FROM video_contests where is_expired is false`
         )
         for(let row_data of video_contest_ids.rows){
-            if( Date.now() < new Date(row_data.event_start_time) || Date.now() > new Date(row_data.event_end_time) ) {
+            if( Date.now() < new Date(row_data.event_start_time).getTime() || Date.now() > new Date(row_data.event_end_time).getTime() ) {
                 continue;
             }
             const initial_video_stats = await pool.query(`
@@ -55,8 +55,9 @@ cron.schedule("*/15 * * * * *", async () => {
                     update video_points as cp set
                     score = cp2.score
                     , extra_details = cp2.extra_details::jsonb
+                    , updated_at = NOW()
                     from (values ${temp_query_array}) as cp2 (video_id, contest_id, score, extra_details)
-                    where cp.video_id = cp2.video_id and cp.video_id=cp2.video_id
+                    where cp.video_id = cp2.video_id and cp.video_id=cp2.video_id and cp.contest_id = ${row_data.id}
                 `)
             }
         }
