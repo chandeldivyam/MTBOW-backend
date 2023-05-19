@@ -113,6 +113,7 @@ CREATE TABLE video_points(
     video_id varchar(255),
     contest_id INT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ,
     channel_title VARCHAR(255),
     video_title VARCHAR(255),
     video_thumbnail VARCHAR(255),
